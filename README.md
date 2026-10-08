@@ -6,16 +6,16 @@ Built with Python, Textual (dark fullscreen TUI), and ffmpeg.
 
 ## Quick Start
 
-One command to open the TUI (from the repo folder):
+Already cloned, just open the TUI:
 
 ```bash
 python vnswap.py
 ```
 
-Fresh Termux setup, copy-paste once — installs dependencies, grants storage access, then opens the TUI:
+Fresh Termux, copy-paste once — installs dependencies, clones the repo, grants storage access, then opens the TUI:
 
 ```bash
-pkg install python ffmpeg -y && pip install textual && termux-setup-storage && python vnswap.py
+pkg install python ffmpeg git -y && pip install textual && git clone https://github.com/ArchDityaa/vnswap-tui && cd vnswap-tui && termux-setup-storage && python vnswap.py
 ```
 
 ## Why vnswap
