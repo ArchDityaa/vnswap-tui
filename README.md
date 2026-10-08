@@ -4,6 +4,20 @@ Swap WhatsApp voice notes directly from Termux. Fully on-device — no website, 
 
 Built with Python, Textual (dark fullscreen TUI), and ffmpeg.
 
+## Quick Start
+
+One command to open the TUI (from the repo folder):
+
+```bash
+python vnswap.py
+```
+
+Fresh Termux setup, copy-paste once — installs dependencies, grants storage access, then opens the TUI:
+
+```bash
+pkg install python ffmpeg -y && pip install textual && termux-setup-storage && python vnswap.py
+```
+
 ## Why vnswap
 
 WhatsApp stores voice notes as paired files (`.opus` audio + `.data` visualization sidecar). vnswap replaces both atomically: it re-encodes any audio/video source into a compatible Opus stream and regenerates the 20 bars/second visualization, so the swapped note plays natively in WhatsApp.
