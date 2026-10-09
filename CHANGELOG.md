@@ -6,6 +6,11 @@ penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Ditambahkan
+
+- `PRIVACY.md` (Kebijakan Privasi) dan `TERMS.md` (Ketentuan Penggunaan)
+  dalam Bahasa Indonesia, ditautkan dari README bagian "Privasi & Ketentuan".
+
 ### Keamanan (LAN)
 
 - Sandbox path API: `/api/audio`, `/api/bars`, `/api/preview`, dan

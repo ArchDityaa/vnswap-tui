@@ -25,6 +25,7 @@ Tiga antarmuka, satu mesin: **TUI** layar penuh (Textual), **CLI** mode teks, da
 - [Keamanan](#keamanan)
 - [Sumber yang Didukung](#sumber-yang-didukung)
 - [Struktur Proyek](#struktur-proyek)
+- [Privasi & Ketentuan](#privasi--ketentuan)
 - [Pemecahan Masalah](#pemecahan-masalah)
 - [Roadmap](#roadmap)
 - [Berkontribusi](#berkontribusi)
@@ -258,6 +259,11 @@ Apa pun yang bisa di-decode ffmpeg akan dicoba; ekstensi yang tidak didukung mem
 | `docs/` | Aset dokumentasi (tangkapan layar) |
 | `tests/` | Suite `pytest`: `test_core`, `test_web`, `test_shared`, `test_update`, `test_net`, `test_health`, `test_theme`, `test_pwa`, `test_security` |
 | `.github/workflows/ci.yml` | CI: byte-compile + pytest pada Python 3.10–3.13 |
+
+## Privasi & Ketentuan
+
+- **[Kebijakan Privasi](PRIVACY.md)** — 100% di perangkat, tanpa analitik/telemetri/akun; upload kedaluwarsa 24 jam; token LAN hanya di tab browser Anda.
+- **[Ketentuan Penggunaan](TERMS.md)** — disediakan apa adanya (MIT); cadangkan & verifikasi; hanya untuk konten milik sendiri; dilarang untuk penipuan/penyamaran; risiko modifikasi data WhatsApp ditanggung pengguna.
 
 ## Pemecahan Masalah
 
