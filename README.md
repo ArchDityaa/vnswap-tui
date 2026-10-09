@@ -1,5 +1,7 @@
 # vnswap-tui
 
+![CI](https://github.com/ArchDityaa/vnswap-tui/actions/workflows/ci.yml/badge.svg)
+
 Swap WhatsApp voice notes directly from Termux. Fully on-device — no website, no upload.
 
 Built with Python, Textual (dark fullscreen TUI), and ffmpeg.
@@ -78,9 +80,12 @@ python vnswap.py                         # fullscreen TUI (recommended)
 python vnswap.py --cli                   # text mode, no Textual required
 python vnswap.py --web                   # web UI at http://127.0.0.1:8000/
 python vnswap.py --web --port 8080       # custom port (Termux: use --host 0.0.0.0 for LAN)
+python vnswap.py --web --host 0.0.0.0    # LAN mode: token auto-generated, open the printed ?token= URL
+python vnswap.py --web --token RAHASIA   # LAN mode with your own token
 python vnswap.py --dry-run               # preview only, files untouched
 python vnswap.py --stereo                # stereo beta (default: mono)
 python vnswap.py --shared /path/.Shared  # custom shared folder
+python vnswap.py --version               # print version
 ```
 
 | Mode | Confirmation | Effect |
@@ -127,10 +132,12 @@ Notes:
 | `vnswap_core.py` | Pure logic (stdlib only — testable anywhere): detection, encode plan, visualization, atomic swap |
 | `vnswap_ui_nav.py` | Dark Pro theme + Target / Source / Confirm screens |
 | `vnswap_ui_run.py` | Process screen + asyncio worker (progress, log, result) |
-| `vnswap_web.py` | Web server (stdlib-only `http.server` + JSON API + background jobs) |
+| `vnswap_web.py` | Web server (stdlib-only `http.server` + JSON API + background jobs, token auth for LAN) |
 | `web/index.html` | Web wizard markup (Target → Source → Confirm → Process) |
 | `web/styles.css` | Dark Pro theme for the web (same tokens as the TUI) |
 | `web/app.js` | Web client (fetch + polling, waveform canvas, upload, rollback) |
+| `tests/test_core.py` | `pytest` suite for `vnswap_core` (no ffmpeg/Textual needed) |
+| `.github/workflows/ci.yml` | CI: byte-compile + pytest on Python 3.10–3.13 |
 
 ## Web interface
 
@@ -148,6 +155,13 @@ warning, then live process view (4 stages, progress bar, log, result card,
 rollback). No third-party packages — `vnswap_web.py` uses only the stdlib and
 reuses `vnswap_core` for encode/sidecar/swap, so behavior matches the TUI
 exactly. On Termux, expose to the LAN with `python vnswap.py --web --host 0.0.0.0`.
+
+### LAN token auth
+
+Loopback (`127.0.0.1`) needs no auth. Binding a non-loopback host enables
+token auth on all `/api/*` endpoints: a token is auto-generated and printed
+(open the printed `?token=...` URL), `--token RAHASIA` sets your own, and
+`--no-auth` disables it (only for networks you trust).
 
 ## Supported sources
 
@@ -189,15 +203,15 @@ Planned next steps — grouped by goal. Contributions welcome against any item.
 
 ### More professional
 
-- [ ] `LICENSE` file (MIT recommended — the License section above is currently a placeholder)
-- [ ] `requirements.txt` / `pyproject.toml` with a pinned `textual` version, plus a `--version` flag and `CHANGELOG.md`
-- [ ] `pytest` suite for `vnswap_core` (stdlib-only by design, so it runs anywhere) with GitHub Actions CI on every push
-- [ ] Token auth for `--host 0.0.0.0` LAN mode in the web server (it currently serves unauthenticated)
-- [ ] Contributing guide and issue templates; tagged releases
+- [x] `LICENSE` file (MIT) — was a placeholder, now shipped
+- [x] `requirements.txt` / `pyproject.toml` with a pinned `textual` range, plus a `--version` flag and `CHANGELOG.md`
+- [x] `pytest` suite for `vnswap_core` (stdlib-only by design, so it runs anywhere) with GitHub Actions CI on every push
+- [x] Token auth for `--host 0.0.0.0` LAN mode in the web server (auto-generated unless `--token`/`--no-auth`)
+- [x] Contributing guide and issue templates; tagged releases (`v1.0.0`, `v1.1.0`, `v1.2.0`)
 
 ## License
 
-Private project — all rights reserved unless a `LICENSE` file is added.
+MIT — see [LICENSE](LICENSE).
 
 ---
 

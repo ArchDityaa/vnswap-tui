@@ -267,6 +267,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="host server web (default: 127.0.0.1)")
     parser.add_argument("--port", type=int, default=8000,
                         help="port server web (default: 8000)")
+    parser.add_argument("--token", default=None,
+                        help="token auth server web (default: auto saat host non-lokal)")
+    parser.add_argument("--no-auth", action="store_true",
+                        help="nonaktifkan token auth server web (hanya untuk jaringan tepercaya)")
+    parser.add_argument("--version", action="version",
+                        version=f"%(prog)s {core.VERSION}")
     args = parser.parse_args(argv)
 
     STATE.shared_dir = Path(args.shared)
@@ -276,9 +282,19 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.web:
         import vnswap_web
+        token, generated = vnswap_web.resolve_token(
+            args.host, args.token, args.no_auth)
         srv = vnswap_web.run_server(args.host, args.port,
-                                    Path(args.shared), default_media_dirs())
-        print(f"vnswap web: http://{args.host}:{args.port}/")
+                                    Path(args.shared), default_media_dirs(),
+                                    token=token)
+        url = f"http://{args.host}:{args.port}/"
+        print(f"vnswap web v{core.VERSION}: {url}")
+        if token:
+            print(f"token: {token} (buka {url}?token={token})")
+            if generated:
+                print("[!!] token dibuat otomatis karena host non-lokal.")
+        elif not vnswap_web.is_loopback(args.host):
+            print("[!!] tanpa token di jaringan lokal — hanya untuk jaringan tepercaya.")
         print(f"shared: {args.shared}")
         print("developed by hakiraadityaa (Ctrl+C untuk berhenti)")
         try:

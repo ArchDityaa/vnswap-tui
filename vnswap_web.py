@@ -27,6 +27,7 @@ import html
 import json
 import mimetypes
 import os
+import secrets
 import shutil
 import subprocess
 import tempfile
@@ -149,7 +150,30 @@ SERVER_CONFIG: dict = {
     "shared_dir": core.DEFAULT_SHARED_DIR,
     "media_dirs": [],
     "upload_dir": UPLOAD_DIR,
+    "token": None,
 }
+
+
+def is_loopback(host: str) -> bool:
+    """True for localhost bindings that never leave the device."""
+    h = host.strip().lower()
+    return h in ("localhost", "::1") or h.startswith("127.")
+
+
+def resolve_token(host: str, token: str | None,
+                  no_auth: bool = False) -> tuple[str | None, bool]:
+    """Decide the API token. Returns (token, auto_generated).
+
+    Non-loopback hosts get an auto-generated token unless one is given
+    or auth is explicitly disabled with --no-auth.
+    """
+    if no_auth:
+        return None, False
+    if token:
+        return token, False
+    if is_loopback(host):
+        return None, False
+    return secrets.token_urlsafe(32), True
 
 
 def default_media_dirs() -> list[Path]:
@@ -435,6 +459,26 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):  # quieter
         pass
 
+    def _api_authorized(self) -> bool:
+        """Token check for /api/* — via ?token= query or Bearer header."""
+        token = SERVER_CONFIG.get("token")
+        if not token:
+            return True
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query)
+        if qs.get("token", [None])[0] == token:
+            return True
+        return self.headers.get("Authorization", "") == f"Bearer {token}"
+
+    def _require_api_auth(self) -> bool:
+        """Send 401 and return False when the API token is missing/wrong."""
+        if self._api_authorized():
+            return True
+        _send_json(self, {
+            "error": "butuh token — buka URL lengkap dari terminal (?token=...).",
+        }, 401)
+        return False
+
     # -- helpers ------------------------------------------------------
     def _serve_static(self, rel: str) -> bool:
         target = (WEB_DIR / rel).resolve() if rel else WEB_DIR / "index.html"
@@ -465,6 +509,8 @@ class Handler(BaseHTTPRequestHandler):
         path = parsed.path
         qs = urllib.parse.parse_qs(parsed.query)
 
+        if path.startswith("/api/") and not self._require_api_auth():
+            return
         if path == "/" or path == "/index.html":
             if not self._serve_static("index.html"):
                 self.send_error(500, "web/index.html missing")
@@ -481,6 +527,8 @@ class Handler(BaseHTTPRequestHandler):
             ffmpeg = core.find_ffmpeg()
             shared: Path = SERVER_CONFIG["shared_dir"]
             return _send_json(self, {
+                "version": core.VERSION,
+                "auth": bool(SERVER_CONFIG.get("token")),
                 "ffmpeg": ffmpeg,
                 "ffmpeg_ok": bool(ffmpeg),
                 "shared_dir": str(shared),
@@ -540,6 +588,8 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
 
+        if path.startswith("/api/") and not self._require_api_auth():
+            return
         if path == "/api/upload":
             saved = _save_multipart(self)
             if not saved:
@@ -613,11 +663,13 @@ class Handler(BaseHTTPRequestHandler):
 
 def run_server(host: str = "127.0.0.1", port: int = 8000,
                shared_dir: Path | None = None,
-               media_dirs: list[Path] | None = None) -> ThreadingHTTPServer:
+               media_dirs: list[Path] | None = None,
+               token: str | None = None) -> ThreadingHTTPServer:
     SERVER_CONFIG["shared_dir"] = shared_dir or core.DEFAULT_SHARED_DIR
     SERVER_CONFIG["media_dirs"] = (media_dirs if media_dirs is not None
                                    else default_media_dirs())
     SERVER_CONFIG["upload_dir"] = UPLOAD_DIR
+    SERVER_CONFIG["token"] = token
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     srv = ThreadingHTTPServer((host, port), Handler)
     return srv
@@ -628,10 +680,24 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--shared", default=str(core.DEFAULT_SHARED_DIR))
+    ap.add_argument("--token", default=None,
+                    help="token auth API (default: auto saat host non-lokal)")
+    ap.add_argument("--no-auth", action="store_true",
+                    help="nonaktifkan token auth (hanya untuk jaringan tepercaya)")
+    ap.add_argument("--version", action="version",
+                    version=f"%(prog)s {core.VERSION}")
     args = ap.parse_args(argv)
+    token, generated = resolve_token(args.host, args.token, args.no_auth)
     srv = run_server(args.host, args.port, Path(args.shared),
-                     default_media_dirs())
-    print(f"vnswap web: http://{args.host}:{args.port}/")
+                     default_media_dirs(), token=token)
+    url = f"http://{args.host}:{args.port}/"
+    print(f"vnswap web v{core.VERSION}: {url}")
+    if token:
+        print(f"token: {token} (buka {url}?token={token})")
+        if generated:
+            print("[!!] token dibuat otomatis karena host non-lokal.")
+    elif not is_loopback(args.host):
+        print("[!!] tanpa token di jaringan lokal — hanya untuk jaringan tepercaya.")
     print(f"shared: {args.shared}")
     print("developed by hakiraadityaa (Ctrl+C untuk berhenti)")
     try:

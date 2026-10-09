@@ -1,0 +1,3 @@
+# Runtime dependency (install with: pip install -r requirements.txt).
+# Dev/test tooling (pytest) is installed separately: pip install pytest.
+textual>=8,<9

@@ -1,0 +1,38 @@
+---
+name: Bug report
+description: Something broken in the TUI, CLI, or web UI
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version (`python vnswap.py --version`)
+      placeholder: 1.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Interface
+      options: [TUI, CLI (--cli), Web (--web)]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Python version, ffmpeg present or not, Termux or other OS
+      placeholder: python 3.12, ffmpeg yes, Termux on Android 14
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste the TUI log lines, terminal output, or web log panel text
+      render: text

@@ -19,6 +19,9 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Release version — single source of truth (mirrored in pyproject.toml).
+VERSION = "1.2.0"
+
 # --------------------------------------------------------------------------
 # Constants — must match the web app exactly
 # --------------------------------------------------------------------------

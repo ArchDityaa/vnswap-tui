@@ -8,9 +8,20 @@ const state = {
   shared: "",
 };
 
+/* API token (LAN mode): ?token= in the URL, remembered per tab. */
+const TOKEN = (() => {
+  const fromUrl = new URLSearchParams(location.search).get("token");
+  if (fromUrl) { try { sessionStorage.setItem("vnswap-token", fromUrl); } catch (e) {} return fromUrl; }
+  try { return sessionStorage.getItem("vnswap-token") || ""; } catch (e) { return ""; }
+})();
+
 async function api(path, opts) {
+  if (TOKEN && path.startsWith("/api/")) {
+    path += (path.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(TOKEN);
+  }
   const r = await fetch(path, opts);
   const j = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new Error(j.error || "butuh token — buka URL lengkap dari terminal.");
   if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
   return j;
 }
@@ -53,7 +64,7 @@ async function refreshHealth() {
       " · " + h.targets + " target · " + h.sources + " sumber";
   } catch (e) {
     $("health-dot").className = "dot bad";
-    $("health-text").textContent = "[XX] server tidak merespons";
+    $("health-text").textContent = "[XX] " + (e.message || "server tidak merespons");
   }
 }
 
@@ -153,8 +164,10 @@ async function uploadFile(f) {
   const fd = new FormData();
   fd.append("file", f, f.name);
   $("manual-status").textContent = "[info] upload berjalan…";
-  const r = await fetch("/api/upload", { method: "POST", body: fd });
+  const upUrl = TOKEN ? ("/api/upload?token=" + encodeURIComponent(TOKEN)) : "/api/upload";
+  const r = await fetch(upUrl, { method: "POST", body: fd });
   const j = await r.json();
+  if (r.status === 401) throw new Error(j.error || "butuh token.");
   if (!r.ok) throw new Error(j.error || "upload gagal");
   state.source = { name: j.name, path: j.path, size_str: j.size_str, tag: "upload" };
   state.sourcePath = j.path;
