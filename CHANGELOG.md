@@ -6,6 +6,14 @@ penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.7.1] — 2026-10-09
+
+### Diperbaiki
+
+- Overflow horizontal di HP: path panjang di footer kini wrap
+  (`overflow-wrap` + `word-break`) dan body memakai `overflow-x: clip`
+  sebagai pengaman tanpa merusak sticky header.
+
 ## [1.7.0] — 2026-10-09
 
 ### Diubah
