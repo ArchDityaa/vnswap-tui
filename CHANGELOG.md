@@ -6,6 +6,19 @@ penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-10-09
+
+### Ditambahkan
+
+- Perintah `vnswap`: ketik `vnswap` untuk TUI, `vnswap web` untuk server web,
+  `vnswap update` untuk update ke versi terbaru dari GitHub (subcommand
+  `tui`/`cli`/`web`/`update`; flag lama `--web`/`--cli` tetap jalan).
+- `vnswap update --check`: cek update saja tanpa download (kode kembali 2
+  bila ada update). Update batal otomatis bila ada perubahan lokal.
+- `install.sh`: instal Termux sekali jalan (dependensi + clone + launcher
+  `$PREFIX/bin/vnswap` sehingga `vnswap` bisa diketik dari mana saja).
+- `tests/test_update.py`: tes resolusi mode dan update via repo git sementara.
+
 ## [1.5.1] — 2026-10-09
 
 ### Diperbaiki

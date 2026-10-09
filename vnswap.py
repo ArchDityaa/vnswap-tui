@@ -1,10 +1,12 @@
 """vnswap — penukar voice-note termux.
 
-Panduan layar penuh + fallback --cli. Cara pakai di termux:
-  pkg install python ffmpeg
-  pip install textual
-  termux-setup-storage
-  python vnswap.py [--shared DIR] [--dry-run] [--stereo] [--cli]
+Panduan layar penuh + fallback --cli + server web + update mandiri.
+Cara pakai di termux (sesudah install.sh, dari mana saja):
+  vnswap          buka TUI
+  vnswap web      jalankan server web
+  vnswap update   update ke versi terbaru dari GitHub
+Tanpa launcher, dari folder repo:
+  python vnswap.py [tui|cli|web|update] [opsi...]
 """
 
 from __future__ import annotations
@@ -252,8 +254,119 @@ def run_pipeline(state: AppState) -> int:
     return 0
 
 
+SUBCOMMANDS = ("tui", "cli", "web", "update")
+
+EPILOG = """subcommand (boleh dihilangkan, default: tui):
+  tui             buka TUI layar penuh
+  cli             mode teks (tanpa TUI)
+  web             jalankan server web (--host/--port/--token/--no-auth)
+  update          update ke versi terbaru dari GitHub (--check = cek saja)
+
+contoh:
+  vnswap
+  vnswap web --host 0.0.0.0 --port 8080
+  vnswap update
+  vnswap update --check
+Flag lama tetap bisa: `vnswap --web`, `vnswap --cli`."""
+
+
+def split_subcommand(argv: list[str]) -> tuple[str | None, list[str]]:
+    """Ambil subcommand opsional di posisi pertama (tui/cli/web/update)."""
+    if argv and argv[0] in SUBCOMMANDS:
+        return argv[0], argv[1:]
+    return None, argv
+
+
+def resolve_mode(cmd: str | None, args: argparse.Namespace) -> str:
+    """Tentukan mode jalan: subcommand menang atas flag lama."""
+    if cmd in SUBCOMMANDS:
+        return cmd
+    if getattr(args, "web", False):
+        return "web"
+    if getattr(args, "cli", False):
+        return "cli"
+    return "tui"
+
+
+def _git(repo: Path, *git_args: str) -> tuple[int, str]:
+    import subprocess
+
+    proc = subprocess.run(["git", "-C", str(repo), *git_args],
+                          capture_output=True, text=True, timeout=120)
+    return proc.returncode, (proc.stdout + proc.stderr).strip()
+
+
+def _read_version(repo: Path) -> str | None:
+    """Baca VERSION dari vnswap_core.py tanpa import (kode mungkin baru)."""
+    import re
+
+    try:
+        text = (repo / "vnswap_core.py").read_text(encoding="utf-8")
+    except OSError:
+        return None
+    match = re.search(r'^VERSION\s*=\s*["\']([^"\']+)["\']', text, re.M)
+    return match.group(1) if match else None
+
+
+def run_update(check_only: bool = False,
+               repo: Path | None = None) -> int:
+    """Update ke versi terbaru dari GitHub via git pull.
+
+    Kode kembali: 0 = ok/sudah terbaru, 1 = gagal, 2 = ada update (mode cek).
+    """
+    import shutil
+
+    repo = repo or Path(__file__).resolve().parent
+    if not shutil.which("git"):
+        print("[XX] git tidak ditemukan — pkg install git dulu.")
+        return 1
+    if not (repo / ".git").is_dir():
+        print("[XX] folder ini bukan clone git, update otomatis tidak bisa.")
+        print("Clone dari GitHub dulu:")
+        print("  git clone https://github.com/ArchDityaa/vnswap-tui")
+        return 1
+    print(f"versi sekarang: {core.VERSION}")
+    code, branch = _git(repo, "rev-parse", "--abbrev-ref", "HEAD")
+    branch = branch.strip() if code == 0 and branch.strip() != "HEAD" else "main"
+    code, upstream = _git(repo, "rev-parse", "--abbrev-ref", "@{u}")
+    upstream = upstream.strip() if code == 0 else f"origin/{branch}"
+    code, kotor = _git(repo, "status", "--porcelain")
+    if code == 0 and kotor:
+        print("[XX] ada perubahan lokal, update dibatalkan agar tidak hilang.")
+        print("Simpan dulu (git stash) atau buang (git checkout -- .), lalu ulangi.")
+        return 1
+    code, _ = _git(repo, "fetch", "origin")
+    if code != 0:
+        print("[XX] fetch dari GitHub gagal — cek koneksi internet.")
+        return 1
+    code, lokal = _git(repo, "rev-parse", "HEAD")
+    code2, jauh = _git(repo, "rev-parse", upstream)
+    if code != 0 or code2 != 0:
+        print(f"[XX] tidak bisa bandingkan dengan {upstream}.")
+        return 1
+    if lokal == jauh:
+        print(f"[OK] sudah versi terbaru ({upstream}).")
+        return 0
+    if check_only:
+        print(f"[!!] ada update di {upstream} — jalankan `vnswap update`.")
+        return 2
+    code, out = _git(repo, "merge", "--ff-only", upstream)
+    if code != 0:
+        print("[XX] merge gagal (riwayat bercabang). Update manual:")
+        print(f"  git -C {repo} fetch origin")
+        print(f"  git -C {repo} reset --hard {upstream}")
+        print(out)
+        return 1
+    baru = _read_version(repo) or "?"
+    print(f"[OK] terupdate ke {baru} ({jauh[:12]}). Jalankan ulang vnswap.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="vnswap")
+    raw = list(sys.argv[1:] if argv is None else argv)
+    cmd, rest = split_subcommand(raw)
+    parser = argparse.ArgumentParser(prog="vnswap", epilog=EPILOG,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--shared", default=None,
                         help="folder .Shared (default: deteksi otomatis)")
     parser.add_argument("--dry-run", action="store_true",
@@ -274,9 +387,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="token auth server web (default: auto saat host non-lokal)")
     parser.add_argument("--no-auth", action="store_true",
                         help="nonaktifkan token auth server web (hanya untuk jaringan tepercaya)")
+    parser.add_argument("--check", action="store_true",
+                        help="cek update saja tanpa download (untuk `update`)")
     parser.add_argument("--version", action="version",
                         version=f"%(prog)s {core.VERSION}")
-    args = parser.parse_args(argv)
+    args = parser.parse_args(rest)
 
     STATE.shared_dir = (Path(args.shared) if args.shared
                           else core.auto_shared_dir())
@@ -284,7 +399,12 @@ def main(argv: list[str] | None = None) -> int:
     STATE.channels = 2 if args.stereo else 1
     STATE.apply_mode = not args.dry_run
 
-    if args.web:
+    mode = resolve_mode(cmd, args)
+
+    if mode == "update":
+        return run_update(check_only=args.check)
+
+    if mode == "web":
         import vnswap_web
         token, generated = vnswap_web.resolve_token(
             args.host, args.token, args.no_auth)
@@ -315,7 +435,7 @@ def main(argv: list[str] | None = None) -> int:
             pass
         return 0
 
-    if args.cli:
+    if mode == "cli":
         return run_cli(STATE)
 
     try:

@@ -73,15 +73,31 @@ gh repo clone ArchDityaa/vnswap-tui
 cd vnswap-tui
 ```
 
+Atau sekali jalan di Termux (dependensi + clone + perintah `vnswap`):
+
+```bash
+sh install.sh
+```
+
+Sesudah itu perintah `vnswap` bisa diketik dari mana saja:
+
+```bash
+vnswap           # buka TUI
+vnswap web       # jalankan server web
+vnswap update    # update ke versi terbaru dari GitHub
+```
+
 ## Penggunaan
 
 ```bash
-python vnswap.py                         # TUI layar penuh (disarankan)
-python vnswap.py --cli                   # mode teks, tanpa perlu Textual
-python vnswap.py --web                   # UI web di http://127.0.0.1:8000/
-python vnswap.py --web --port 8080       # port kustom (Termux: pakai --host 0.0.0.0 untuk LAN)
-python vnswap.py --web --host 0.0.0.0    # mode LAN: token dibuat otomatis, buka URL ?token= yang tercetak
-python vnswap.py --web --token RAHASIA   # mode LAN dengan token sendiri
+vnswap                               # TUI layar penuh (disarankan)
+vnswap cli                           # mode teks, tanpa perlu Textual
+vnswap web                           # UI web di http://127.0.0.1:8000/
+vnswap web --port 8080               # port kustom (Termux: pakai --host 0.0.0.0 untuk LAN)
+vnswap web --host 0.0.0.0            # mode LAN: token dibuat otomatis, buka URL ?token= yang tercetak
+vnswap update                        # update ke versi terbaru dari GitHub
+vnswap update --check                # cek update saja, tanpa download
+python vnswap.py [perintah/opsi yang sama]  # tanpa launcher install.sh
 python vnswap.py --dry-run               # hanya pratinjau, file tidak diubah
 python vnswap.py --stereo                # stereo beta (default: mono)
 python vnswap.py --shared /path/.Shared  # folder shared kustom
