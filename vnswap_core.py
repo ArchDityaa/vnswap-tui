@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # Release version — single source of truth (mirrored in pyproject.toml).
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 
 # --------------------------------------------------------------------------
 # Constants — must match the web app exactly

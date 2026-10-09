@@ -67,6 +67,7 @@ async function refreshHealth() {
       sel.value = h.shared_dir;
     }
     $("foot-shared").textContent = h.shared_dir;
+    if (h.version) $("foot-ver").textContent = "v" + h.version;
     $("shared-hint").textContent = h.shared_exists ? "" : "[!!] folder tidak ada";
     const ok = h.ffmpeg_ok && h.shared_exists;
     $("health-dot").className = "dot " + (h.ffmpeg_ok ? "ok" : "bad");
@@ -106,14 +107,24 @@ async function loadCandidates() {
 
 /* ---- step 1: targets ---- */
 async function loadTargets() {
-  const q = state.shared ? ("?shared=" + encodeURIComponent(state.shared)) : "";
-  const { targets, shared_dir } = await api("/api/targets" + q);
+  const tb = document.querySelector("#target-table tbody");
+  let data;
+  try {
+    const q = state.shared ? ("?shared=" + encodeURIComponent(state.shared)) : "";
+    data = await api("/api/targets" + q);
+  } catch (e) {
+    tb.innerHTML = "";
+    const empty = $("target-empty");
+    empty.classList.remove("hidden");
+    empty.textContent = "[XX] gagal memuat target: " + e.message + "\nPath: " + (state.shared || "-");
+    return;
+  }
+  const { targets, shared_dir } = data;
   state.targets = targets;
   if (shared_dir) { state.shared = shared_dir; $("foot-shared").textContent = shared_dir; }
   const needle = $("target-filter").value.trim().toLowerCase();
   const rows = targets.filter((t) =>
     !needle || t.name.toLowerCase().includes(needle) || t.base_name.toLowerCase().includes(needle));
-  const tb = document.querySelector("#target-table tbody");
   tb.innerHTML = "";
   $("target-empty").classList.toggle("hidden", targets.length > 0);
   if (!targets.length) {
@@ -371,7 +382,11 @@ async function startSwap() {
 
 /* ---- events ---- */
 $("target-filter").addEventListener("input", () => loadTargets().catch(() => {}));
-$("target-rescan").addEventListener("click", () => { loadTargets().catch(() => {}); refreshHealth(); });
+$("target-rescan").addEventListener("click", () => {
+  loadCandidates().catch(() => {});
+  loadTargets().catch(() => {});
+  refreshHealth();
+});
 $("source-filter").addEventListener("input", paintSources);
 $("manual-path").addEventListener("input", checkManual);
 $("upload").addEventListener("change", async (e) => {

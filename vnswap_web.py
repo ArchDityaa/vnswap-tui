@@ -559,6 +559,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", ctype or "application/octet-stream")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
         return True
@@ -586,6 +587,16 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/health":
             ffmpeg = core.find_ffmpeg()
             shared: Path = SERVER_CONFIG["shared_dir"]
+            try:
+                n_targets = len(core.detect_targets(shared))
+                n_sources = len(core.discover_sources(
+                    SERVER_CONFIG.get("media_dirs", [])))
+            except OSError as exc:
+                return _send_json(self, {
+                    "error": f"gagal memindai: {exc}",
+                    "shared_dir": str(shared),
+                    "shared_exists": shared.is_dir(),
+                }, 500)
             return _send_json(self, {
                 "version": core.VERSION,
                 "auth": bool(SERVER_CONFIG.get("token")),
@@ -594,16 +605,22 @@ class Handler(BaseHTTPRequestHandler):
                 "ffmpeg_ok": bool(ffmpeg),
                 "shared_dir": str(shared),
                 "shared_exists": shared.is_dir(),
-                "targets": len(core.detect_targets(shared)),
-                "sources": len(core.discover_sources(
-                    SERVER_CONFIG.get("media_dirs", []))),
+                "targets": n_targets,
+                "sources": n_sources,
             })
         if path == "/api/targets":
             shared: Path = SERVER_CONFIG["shared_dir"]
             custom = qs.get("shared", [None])[0]
             if custom:
                 shared = Path(custom)
-            return _send_json(self, {"targets": _targets_payload(shared),
+            try:
+                payload = _targets_payload(shared)
+            except OSError as exc:
+                return _send_json(self, {
+                    "error": f"gagal membaca folder: {exc}",
+                    "shared_dir": str(shared),
+                }, 500)
+            return _send_json(self, {"targets": payload,
                                      "shared_dir": str(shared)})
         if path == "/api/sources":
             return _send_json(self, {
@@ -670,11 +687,40 @@ class Handler(BaseHTTPRequestHandler):
                 return _send_json(self, {"error": "file tidak ada"}, 404)
             return _serve_media(self, p)
         if path == "/api/shared-candidates":
-            ranked = core.rank_shared_candidates()
+            try:
+                ranked = core.rank_shared_candidates()
+            except OSError as exc:
+                return _send_json(self, {
+                    "error": f"gagal memindai kandidat: {exc}",
+                }, 500)
             return _send_json(self, {
                 "selected": str(SERVER_CONFIG.get("shared_dir", "")),
                 "candidates": [{"path": str(p), "targets": n}
                                for p, n in ranked],
+            })
+        if path == "/api/diagnostics":
+            shared = SERVER_CONFIG["shared_dir"]
+            try:
+                ranked = core.rank_shared_candidates()
+                cands = [{"path": str(p), "targets": n} for p, n in ranked]
+                scan_error = None
+            except OSError as exc:
+                cands = []
+                scan_error = str(exc)
+            return _send_json(self, {
+                "version": core.VERSION,
+                "os": os.name,
+                "cwd": str(Path.cwd()),
+                "env_shared": os.environ.get("VNSWAP_SHARED", ""),
+                "shared_dir": str(shared),
+                "shared_exists": shared.is_dir(),
+                "shared_auto": bool(SERVER_CONFIG.get("shared_auto")),
+                "candidates": cands,
+                "scan_error": scan_error,
+                "ffmpeg": core.find_ffmpeg(),
+                "auth": bool(SERVER_CONFIG.get("token")),
+                "media_dirs": [str(d) for d in
+                               SERVER_CONFIG.get("media_dirs", [])],
             })
         if path == "/api/plan":
             try:

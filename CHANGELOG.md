@@ -6,6 +6,33 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-10-09
+
+### Fixed
+
+- Web tidak menampilkan target padahal TUI bisa: tiga akar masalah di
+  lapisan HTTP/JS, bukan di deteksi — (1) error API ditelan diam-diam
+  oleh frontend, (2) `OSError` saat pemindaian memutus koneksi tanpa
+  respons JSON, (3) browser bisa menyajikan `app.js` basi karena file
+  statis tanpa header cache.
+- `GET /api/health`, `/api/targets`, `/api/shared-candidates` kini
+  mengembalikan JSON error (HTTP 500) saat pemindaian gagal, bukan
+  koneksi putus.
+- File statis (`/`, `/app.js`, `/styles.css`) memakai
+  `Cache-Control: no-store` agar update selalu sampai ke browser.
+- `loadTargets()` menampilkan pesan `[XX] gagal memuat target: ...`
+  langsung di tabel; tombol Rescan ikut memuat ulang kandidat.
+
+### Added
+
+- `GET /api/diagnostics`: platform, cwd, nilai `VNSWAP_SHARED`,
+  `shared_dir` terpilih, status ada/tidaknya, semua kandidat +
+  jumlah target, `scan_error`, ffmpeg, dan status auth — untuk
+  melacak kenapa deteksi gagal di perangkat tertentu. Buka
+  `http://127.0.0.1:8000/api/diagnostics` di browser HP.
+- Versi aplikasi tampil di footer web (`vX.Y.Z`) agar mudah tahu
+  apakah browser memuat kode terbaru.
+
 ## [1.4.0] — 2026-10-09
 
 ### Fixed

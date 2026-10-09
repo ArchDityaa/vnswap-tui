@@ -187,7 +187,8 @@ Anything ffmpeg can decode is attempted; unsupported extensions warn but still t
 |---------|-----|
 | `ffmpeg tidak ditemukan` | `pkg install ffmpeg -y` |
 | `textual belum terinstall` | `pip install textual`, or use `--cli` |
-| No targets found | Play one voice note in WhatsApp first, then `R` (Rescan) |
+| No targets found | Play satu voice note di WhatsApp dulu, lalu `R` (Rescan) di TUI atau tombol Rescan di web |
+| Web kosong padahal TUI ada isi | Buka `http://127.0.0.1:8000/api/diagnostics` di browser HP, lihat `shared_dir`, `shared_exists`, `candidates`, dan `scan_error` — di situlah penyebabnya tercatat. Lalu hard-refresh (`Ctrl+Shift+R`) agar `app.js` terbaru terpakai, dan cek footer: harus tertulis versi terbaru |
 | Encode always fails | Verify the source file opens; try `--dry-run` to isolate |
 
 ## Roadmap

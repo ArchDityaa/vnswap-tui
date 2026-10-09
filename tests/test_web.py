@@ -124,6 +124,43 @@ def test_preview_computes_resampled_bars(srv):
     assert max(pv["source_bars"]) == 100
 
 
+def test_diagnostics_reports_resolution(srv, monkeypatch):
+    base, root = srv
+    monkeypatch.setenv("VNSWAP_SHARED", str(root))
+    status, _, body = _get(base, "/api/diagnostics")
+    assert status == 200
+    d = json.loads(body)
+    assert d["version"] == core.VERSION
+    assert d["shared_dir"] == str(root)
+    assert d["shared_exists"] is True
+    assert d["env_shared"] == str(root)
+    assert d["auth"] is False
+    assert any(c["path"] == str(root) for c in d["candidates"])
+    assert d["scan_error"] is None
+
+
+def test_static_assets_are_not_cached(srv):
+    base, _ = srv
+    for p in ("/", "/app.js", "/styles.css"):
+        status, headers, _ = _get(base, p)
+        assert status == 200
+        assert headers.get("Cache-Control") == "no-store"
+
+
+def test_scan_failure_returns_json_not_dropped_connection(srv, monkeypatch):
+    base, _ = srv
+
+    def _boom(_path):
+        raise PermissionError("izin ditolak (simulasi)")
+
+    monkeypatch.setattr(core, "detect_targets", _boom)
+    for p in ("/api/health", "/api/targets"):
+        status, _, body = _get(base, p)
+        assert status == 500
+        j = json.loads(body)
+        assert "gagal" in j["error"]
+
+
 def test_token_gates_api_but_not_static(tmp_path):
     (tmp_path / "tVisualization.data").write_bytes(bytes([10] * 20))
     server = web.run_server("127.0.0.1", 0, tmp_path, [tmp_path],
