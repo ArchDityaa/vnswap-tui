@@ -23,12 +23,14 @@ Tanpa dependensi pihak ketiga. ThreadingHTTPServer + thread latar.
 from __future__ import annotations
 
 import argparse
+import errno
 import html
 import json
 import mimetypes
 import os
 import secrets
 import shutil
+import socket
 import subprocess
 import tempfile
 import threading
@@ -175,6 +177,49 @@ def resolve_token(host: str, token: str | None,
     if is_loopback(host):
         return None, False
     return secrets.token_urlsafe(32), True
+
+
+def lan_ips() -> list[str]:
+    """IP LAN perangkat untuk URL yang bisa dibuka dari browser HP.
+
+    Trik UDP-connect hanya membaca tabel routing — tidak ada paket yang
+    dikirim, jadi aman offline (saat gagal, kembalikan list kosong).
+    """
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+        finally:
+            s.close()
+    except OSError:
+        return []
+    if not ip or ip.startswith("127."):
+        return []
+    return [ip]
+
+
+def access_urls(host: str, port: int, token: str | None) -> list[str]:
+    """URL yang benar-benar bisa dibuka di browser.
+
+    Jangan pernah cetak host bind mentah: `0.0.0.0` bukan alamat tujuan
+    yang valid dan browser menolaknya. Selalu sertakan loopback, tambah
+    tiap IP LAN bila binding non-loopback, dan sematkan token.
+    """
+    suffix = f"?token={token}" if token else ""
+    urls = [f"http://127.0.0.1:{port}/{suffix}"]
+    if not is_loopback(host):
+        seen = {"127.0.0.1"}
+        candidates = []
+        h = host.strip()
+        if h not in ("0.0.0.0", "::"):
+            candidates.append(h)
+        candidates.extend(lan_ips())
+        for cand in candidates:
+            if cand and cand not in seen:
+                seen.add(cand)
+                urls.append(f"http://{cand}:{port}/{suffix}")
+    return urls
 
 
 def default_media_dirs() -> list[Path]:
@@ -833,7 +878,19 @@ def run_server(host: str = "127.0.0.1", port: int = 8000,
     SERVER_CONFIG["upload_dir"] = UPLOAD_DIR
     SERVER_CONFIG["token"] = token
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    srv = ThreadingHTTPServer((host, port), Handler)
+    try:
+        srv = ThreadingHTTPServer((host, port), Handler)
+    except OSError as exc:
+        # Windows melaporkan konflik sebagai errno=EACCES(13)/winerror=10013,
+        # Unix sebagai EADDRINUSE — tangkap semuanya lewat kedua atribut.
+        codes = {exc.errno, getattr(exc, "winerror", None)}
+        if codes & {errno.EADDRINUSE, errno.EACCES, 10013, 10048}:
+            raise OSError(
+                f"port {port} tidak bisa dipakai (kemungkinan sudah dipakai "
+                f"proses lain) — hentikan server lama atau ulangi dengan "
+                f"--port lain (mis. --port {port + 1})."
+            ) from exc
+        raise
     return srv
 
 
@@ -851,15 +908,23 @@ def main(argv: list[str] | None = None) -> int:
                     version=f"%(prog)s {core.VERSION}")
     args = ap.parse_args(argv)
     token, generated = resolve_token(args.host, args.token, args.no_auth)
-    srv = run_server(args.host, args.port,
-                     Path(args.shared) if args.shared else None,
-                     default_media_dirs(), token=token)
+    try:
+        srv = run_server(args.host, args.port,
+                         Path(args.shared) if args.shared else None,
+                         default_media_dirs(), token=token)
+    except OSError as exc:
+        print(f"[XX] {exc}")
+        return 1
+    port = srv.server_address[1]
     resolved = SERVER_CONFIG["shared_dir"]
     auto_note = " (deteksi otomatis)" if SERVER_CONFIG["shared_auto"] else ""
-    url = f"http://{args.host}:{args.port}/"
-    print(f"vnswap web v{core.VERSION}: {url}")
+    print(f"vnswap web v{core.VERSION}: buka salah satu URL ini di browser HP:")
+    for u in access_urls(args.host, port, token):
+        print(f"  {u}")
+    print(f"  http://127.0.0.1:{port}/api/diagnostics"
+          "  (halaman diagnosis bila daftar target kosong)")
     if token:
-        print(f"token: {token} (buka {url}?token={token})")
+        print("token sudah tersemat di URL di atas.")
         if generated:
             print("[!!] token dibuat otomatis karena host non-lokal.")
     elif not is_loopback(args.host):

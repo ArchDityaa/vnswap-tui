@@ -6,6 +6,26 @@ penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.5.1] — 2026-10-09
+
+### Diperbaiki
+
+- URL web yang tercetak tak bisa dibuka di mode LAN: terminal mencetak
+  `http://0.0.0.0:...` (alamat bind, ditolak browser) sehingga web tampak
+  "tidak work" padahal server jalan. Kini dicetak URL siap-buka: loopback
+  plus tiap IP LAN perangkat (terdeteksi via routing lokal, tanpa kirim
+  paket), token tersemat otomatis, plus URL `/api/diagnostics`.
+- Port bentrok tak lagi traceback: konflik bind menghasilkan pesan ramah
+  `[XX] port ... sudah dipakai ... --port lain` dan exit code 1.
+- Panduan Termux baru di Pemecahan Masalah: `termux-wake-lock` agar Android
+  tak mematikan server saat pindah ke browser, wajib ketik `http://` lengkap,
+  dan cara pakai token di mode LAN.
+
+### Ditambahkan
+
+- `lan_ips()` dan `access_urls()` di `vnswap_web.py` beserta suite
+  `tests/test_net.py` (URL loopback/LAN, anti-`0.0.0.0`, konflik port).
+
 ## [1.5.0] — 2026-10-09
 
 ### Diubah

@@ -189,6 +189,11 @@ Apa pun yang bisa di-decode ffmpeg akan dicoba; ekstensi yang tidak didukung mem
 | `textual belum terinstall` | `pip install textual`, atau gunakan `--cli` |
 | Tidak ada target ditemukan | Putar satu voice note di WhatsApp dulu, lalu `R` (Pindai Ulang) di TUI atau tombol Pindai Ulang di web |
 | Web kosong padahal TUI ada isi | Buka `http://127.0.0.1:8000/api/diagnostics` di browser HP, lihat `shared_dir`, `shared_exists`, `candidates`, dan `scan_error` — di situlah penyebabnya tercatat. Lalu hard-refresh (`Ctrl+Shift+R`) agar `app.js` terbaru terpakai, dan cek footer: harus tertulis versi terbaru |
+| Browser "situs tidak dapat dijangkau" padahal server jalan | Jangan buka `http://0.0.0.0:...` — itu alamat bind, bukan alamat tujuan. Terminal kini mencetak URL siap-buka (loopback + tiap IP LAN). Di HP lain pakai URL IP LAN, di HP yang sama pakai `http://127.0.0.1:8000/` |
+| Chrome malah Googling alamatnya | Ketik lengkap dengan `http://` di depan, mis. `http://127.0.0.1:8000/` — tanpa skema, Chrome menganggapnya kata kunci pencarian |
+| Halaman mati setelah pindah aplikasi | Android mematikan Termux saat dibuka browser. Kunci bangun dulu: `termux-wake-lock` (paket `termux-api`), atau pakai layar-belah agar Termux tetap foreground. Matikan optimasi baterai untuk Termux bila perlu |
+| `[XX] port ... sudah dipakai` | Server lama masih jalan. Hentikan dulu (buka terminal lama, `Ctrl+C`), atau jalankan dengan `--port` lain, mis. `--port 8080` |
+| API web 401 "butuh token" | Mode LAN butuh token: buka URL lengkap dari terminal (token sudah tersemat sebagai `?token=...`), jangan ketik manual tanpa token |
 | Encode selalu gagal | Pastikan file sumber bisa dibuka; coba `--dry-run` untuk isolasi |
 
 ## Roadmap

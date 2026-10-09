@@ -288,13 +288,21 @@ def main(argv: list[str] | None = None) -> int:
         import vnswap_web
         token, generated = vnswap_web.resolve_token(
             args.host, args.token, args.no_auth)
-        srv = vnswap_web.run_server(args.host, args.port,
-                                    STATE.shared_dir, default_media_dirs(),
-                                    token=token)
-        url = f"http://{args.host}:{args.port}/"
-        print(f"vnswap web v{core.VERSION}: {url}")
+        try:
+            srv = vnswap_web.run_server(args.host, args.port,
+                                        STATE.shared_dir, default_media_dirs(),
+                                        token=token)
+        except OSError as exc:
+            print(f"[XX] {exc}")
+            return 1
+        port = srv.server_address[1]
+        print(f"vnswap web v{core.VERSION}: buka salah satu URL ini di browser HP:")
+        for u in vnswap_web.access_urls(args.host, port, token):
+            print(f"  {u}")
+        print(f"  http://127.0.0.1:{port}/api/diagnostics"
+              "  (halaman diagnosis bila daftar target kosong)")
         if token:
-            print(f"token: {token} (buka {url}?token={token})")
+            print("token sudah tersemat di URL di atas.")
             if generated:
                 print("[!!] token dibuat otomatis karena host non-lokal.")
         elif not vnswap_web.is_loopback(args.host):
