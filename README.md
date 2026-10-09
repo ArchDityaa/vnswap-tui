@@ -37,6 +37,9 @@ Conversion logic mirrors the web implementation:
 - Atomic write per file via `os.replace`, with automatic + one-click rollback
 - Live progress: encode, sidecar generation, backup, swap
 - Preview (dry-run) mode that simulates the full pipeline without touching files
+- Web UI (`--web`, stdlib-only, no Textual needed): same 4-step wizard in the
+  browser with live progress, waveform canvas preview, drag-drop upload,
+  and one-click rollback
 - Smart defaults: newest target pre-selected, so three `Enter` presses complete a swap
 - Manual path input with file-type validation
 - Termux-safe: ASCII-only status markers (`[OK]`, `[--]`, `[!!]`, `[XX]`), no emoji
@@ -73,6 +76,8 @@ cd vnswap-tui
 ```bash
 python vnswap.py                         # fullscreen TUI (recommended)
 python vnswap.py --cli                   # text mode, no Textual required
+python vnswap.py --web                   # web UI at http://127.0.0.1:8000/
+python vnswap.py --web --port 8080       # custom port (Termux: use --host 0.0.0.0 for LAN)
 python vnswap.py --dry-run               # preview only, files untouched
 python vnswap.py --stereo                # stereo beta (default: mono)
 python vnswap.py --shared /path/.Shared  # custom shared folder
@@ -118,10 +123,31 @@ Notes:
 
 | File | Contents |
 |------|----------|
-| `vnswap.py` | Entrypoint, app state, CLI fallback, shared pipeline |
+| `vnswap.py` | Entrypoint, app state, CLI fallback, shared pipeline, `--web` launcher |
 | `vnswap_core.py` | Pure logic (stdlib only — testable anywhere): detection, encode plan, visualization, atomic swap |
 | `vnswap_ui_nav.py` | Dark Pro theme + Target / Source / Confirm screens |
 | `vnswap_ui_run.py` | Process screen + asyncio worker (progress, log, result) |
+| `vnswap_web.py` | Web server (stdlib-only `http.server` + JSON API + background jobs) |
+| `web/index.html` | Web wizard markup (Target → Source → Confirm → Process) |
+| `web/styles.css` | Dark Pro theme for the web (same tokens as the TUI) |
+| `web/app.js` | Web client (fetch + polling, waveform canvas, upload, rollback) |
+
+## Web interface
+
+For users who prefer not to use the terminal UI:
+
+```bash
+python vnswap.py --web
+# open http://127.0.0.1:8000/ in the browser
+```
+
+Feature parity with the TUI: target auto-detect + rescan + filter, source
+auto-discover + filter + drag-drop upload + manual server path, confirm cards
+with waveform preview + preview/write toggle + mono/stereo recipe + oversize
+warning, then live process view (4 stages, progress bar, log, result card,
+rollback). No third-party packages — `vnswap_web.py` uses only the stdlib and
+reuses `vnswap_core` for encode/sidecar/swap, so behavior matches the TUI
+exactly. On Termux, expose to the LAN with `python vnswap.py --web --host 0.0.0.0`.
 
 ## Supported sources
 

@@ -1,0 +1,360 @@
+/* vnswap web client — vanilla JS, no deps. ASCII markers, no emoji. */
+const $ = (id) => document.getElementById(id);
+const state = {
+  targets: [], sources: [],
+  target: null, source: null, sourcePath: "",
+  channels: 1, dryRun: false,
+  jobId: null, poll: null,
+  shared: "",
+};
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
+  return j;
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+
+function go(n) {
+  for (let i = 1; i <= 4; i++) {
+    $("step-" + i).classList.toggle("hidden", i !== n);
+    document.querySelectorAll('#stepper button').forEach((b) => {
+      const s = Number(b.dataset.step);
+      b.classList.toggle("active", s === n);
+      b.classList.toggle("done", s < n);
+    });
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+document.querySelectorAll('#stepper button').forEach((b) =>
+  b.addEventListener("click", () => {
+    const s = Number(b.dataset.step);
+    if (s === 4) return; // process only via swap
+    if (s === 2 && !state.target) return;
+    if (s === 3 && (!state.target || !state.sourcePath)) return;
+    go(s);
+  }));
+
+async function refreshHealth() {
+  try {
+    const h = await api("/api/health");
+    state.shared = h.shared_dir;
+    $("shared-input").value = h.shared_dir;
+    $("foot-shared").textContent = h.shared_dir;
+    $("shared-hint").textContent = h.shared_exists ? "" : "[!!] folder tidak ada";
+    const ok = h.ffmpeg_ok && h.shared_exists;
+    $("health-dot").className = "dot " + (h.ffmpeg_ok ? "ok" : "bad");
+    $("health-text").textContent =
+      (h.ffmpeg_ok ? "[OK] ffmpeg" : "[XX] ffmpeg hilang") +
+      " · " + h.targets + " target · " + h.sources + " sumber";
+  } catch (e) {
+    $("health-dot").className = "dot bad";
+    $("health-text").textContent = "[XX] server tidak merespons";
+  }
+}
+
+/* ---- step 1: targets ---- */
+async function loadTargets() {
+  const q = state.shared ? ("?shared=" + encodeURIComponent(state.shared)) : "";
+  const { targets, shared_dir } = await api("/api/targets" + q);
+  state.targets = targets;
+  if (shared_dir) { state.shared = shared_dir; $("foot-shared").textContent = shared_dir; }
+  const needle = $("target-filter").value.trim().toLowerCase();
+  const rows = targets.filter((t) =>
+    !needle || t.name.toLowerCase().includes(needle) || t.base_name.toLowerCase().includes(needle));
+  const tb = document.querySelector("#target-table tbody");
+  tb.innerHTML = "";
+  $("target-empty").classList.toggle("hidden", targets.length > 0);
+  if (!targets.length) {
+    $("target-empty").textContent =
+      "Belum ada target di folder .Shared\n1. Buka WhatsApp, putar satu voice note\n2. Kembali ke sini, tekan Rescan\nPath: " + state.shared;
+  }
+  rows.slice(0, 50).forEach((t) => {
+    const tr = document.createElement("tr");
+    if (state.target && state.target.path === t.path) tr.className = "sel";
+    tr.innerHTML = "<td>" + (state.target && state.target.path === t.path ? "[x]" : "[ ]") + "</td>" +
+      "<td class='name" + "' title='" + esc(t.name) + "'>" + esc(t.short_name) + "</td>" +
+      "<td>" + esc(t.duration_str) + "</td><td>" + esc(t.rel) + "</td>" +
+      "<td>" + esc(t.size_str) + "</td>" +
+      "<td>" + (t.has_opus ? "[OK] opus" : "[--] tanpa opus") + "</td>";
+    tr.addEventListener("click", () => { state.target = t; paintTargets(); paintSourceContext(); });
+    tr.addEventListener("dblclick", () => { if (state.target) { loadSources(); go(2); } });
+    tb.appendChild(tr);
+  });
+  if (!state.target && targets.length) state.target = targets[0];
+  paintSourceContext();
+}
+function paintTargets() { loadTargets().catch(() => {}); }
+
+/* ---- step 2: sources ---- */
+async function loadSources() {
+  const { sources } = await api("/api/sources");
+  state.sources = sources;
+  paintSources();
+  paintSourceContext();
+}
+function paintSources() {
+  const needle = $("source-filter").value.trim().toLowerCase();
+  const rows = state.sources.filter((s) =>
+    !needle || s.name.toLowerCase().includes(needle));
+  const tb = document.querySelector("#source-table tbody");
+  tb.innerHTML = "";
+  const manual = $("manual-path").value.trim();
+  if (!rows.length && !manual) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td>--</td><td>Upload file atau ketik path manual</td><td>--</td><td>--</td>";
+    tb.appendChild(tr);
+    return;
+  }
+  rows.slice(0, 60).forEach((s) => {
+    const tr = document.createElement("tr");
+    if (state.sourcePath === s.path) tr.className = "sel";
+    tr.innerHTML = "<td>" + (state.sourcePath === s.path ? "[x]" : "[ ]") + "</td>" +
+      "<td class='name' title='" + esc(s.path) + "'>" + esc(s.name) + (s.uploaded ? " (upload)" : "") + "</td>" +
+      "<td>" + esc(s.tag) + "</td><td>" + esc(s.size_str) + "</td>";
+    tr.addEventListener("click", () => {
+      state.source = s; state.sourcePath = s.path;
+      $("manual-path").value = "";
+      paintSources(); checkManual();
+    });
+    tr.addEventListener("dblclick", () => { refreshConfirm(); go(3); });
+    tb.appendChild(tr);
+  });
+  if (!state.sourcePath && state.sources.length) {
+    state.source = state.sources[0];
+    state.sourcePath = state.sources[0].path;
+    paintSources();
+  }
+}
+function paintSourceContext() {
+  $("source-context").textContent = state.target
+    ? ("Target: " + state.target.short_name + " (" + state.target.duration_str + ")")
+    : "—";
+}
+function checkManual() {
+  const v = $("manual-path").value.trim();
+  const el = $("manual-status");
+  if (!v) { el.textContent = ""; el.className = "manual-status"; return; }
+  state.sourcePath = v;
+  state.source = { name: v.split(/[\\/]/).pop(), path: v, size_str: "?", tag: "?" };
+  // lightweight existence hint via sources list match
+  const known = state.sources.find((s) => s.path === v);
+  if (known) { el.textContent = "[OK] file ada di daftar sumber"; el.className = "manual-status ok"; }
+  else { el.textContent = "[!!] path manual — dicek saat proses berjalan"; el.className = "manual-status warn"; }
+  paintSources();
+}
+
+/* upload */
+async function uploadFile(f) {
+  const fd = new FormData();
+  fd.append("file", f, f.name);
+  $("manual-status").textContent = "[info] upload berjalan…";
+  const r = await fetch("/api/upload", { method: "POST", body: fd });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || "upload gagal");
+  state.source = { name: j.name, path: j.path, size_str: j.size_str, tag: "upload" };
+  state.sourcePath = j.path;
+  await loadSources();
+  state.sourcePath = j.path;
+  paintSources();
+  $("manual-status").textContent = "[OK] upload: " + j.name + " (" + j.size_str + ")" +
+    (j.warning ? " — " + j.warning : "");
+  $("manual-status").className = "manual-status ok";
+}
+
+/* ---- step 3: confirm ---- */
+function drawWave(bars) {
+  const cv = $("wave");
+  const ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  if (!bars || !bars.length) return;
+  const n = bars.length;
+  const bw = Math.max(1, W / n - 1);
+  ctx.fillStyle = "#34D399";
+  bars.forEach((v, i) => {
+    const h = Math.max(2, (Math.min(100, v) / 100) * (H - 8));
+    ctx.fillRect(i * (W / n), (H - h) / 2, bw, h);
+  });
+}
+async function refreshConfirm() {
+  const t = state.target;
+  $("confirm-target").textContent = t
+    ? ("TARGET\n" + t.name + "\n" + t.duration_str + ", " + t.size_str + "\n" +
+       (t.has_opus ? "[OK] opus pendamping ada" : "[--] tanpa opus"))
+    : "TARGET\n--";
+  const sp = state.sourcePath;
+  $("confirm-source").textContent = sp
+    ? ("SUMBER\n" + (state.source ? state.source.name : sp.split(/[\\/]/).pop()) + "\n" + sp)
+    : "SUMBER\n--";
+  // waveform
+  if (t) {
+    try {
+      const j = await api("/api/bars?path=" + encodeURIComponent(t.path));
+      drawWave(j.bars);
+      const glyphs = " .-=+#";
+      const vals = j.bars.filter((_, i) => i % Math.max(1, Math.floor(j.bars.length / 40)) === 0).slice(0, 40);
+      $("wave-ascii").textContent = "Pola: " + vals.map((v) =>
+        glyphs[Math.min(glyphs.length - 1, Math.floor(v * glyphs.length / 101))]).join("");
+      // size heuristic mirrors TUI
+      const src = state.sources.find((s) => s.path === sp);
+      if (src && t.length > 0 && src.size > t.length * 1024 * 20) {
+        $("size-warn").textContent = "[!!] Sumber jauh lebih besar dari target. Audio akan dipadatkan ke sidecar target.";
+        $("size-warn").classList.remove("hidden");
+      } else $("size-warn").classList.add("hidden");
+    } catch (e) {
+      $("wave-ascii").textContent = "pola tidak terbaca: " + e.message;
+    }
+  }
+  const plan = await api("/api/plan?channels=" + state.channels).catch(() => null);
+  const recipe = plan ? ("opus " + plan.bitrate + " " + plan.application + " " + plan.label) : "opus";
+  const banner = $("mode-banner");
+  if (state.dryRun) {
+    banner.textContent = "Mode: PREVIEW - tidak ubah file\nResep: " + recipe;
+    banner.className = "banner";
+  } else {
+    banner.textContent = "Mode: TULIS LANGSUNG + backup .bak otomatis\nResep: " + recipe;
+    banner.className = "banner danger";
+  }
+}
+
+/* ---- step 4: run ---- */
+function paintStages(stages) {
+  document.querySelectorAll("#stages li").forEach((li) => {
+    const s = stages[Number(li.dataset.i)] || "todo";
+    li.className = s;
+  });
+}
+function logLine(l) {
+  const el = $("log");
+  el.textContent += "[" + l.level + "] " + l.msg + "\n";
+  el.scrollTop = el.scrollHeight;
+}
+async function pollJob() {
+  try {
+    const j = await api("/api/jobs/" + state.jobId);
+    $("bar").style.width = j.progress + "%";
+    $("percent").textContent = j.progress + "%";
+    paintStages(j.stages);
+    const el = $("log");
+    const seen = Number(el.dataset.n || 0);
+    j.logs.slice(seen).forEach(logLine);
+    el.dataset.n = j.logs.length;
+    if (j.status === "done" || j.status === "error") {
+      clearInterval(state.poll); state.poll = null;
+      const rc = $("result-card");
+      rc.classList.remove("hidden");
+      if (j.status === "done" && j.result) {
+        const r = j.result;
+        rc.className = "banner ok";
+        rc.textContent = r.mode === "preview"
+          ? ("[OK] PREVIEW selesai - tidak ada file diubah.\nVendor: " + (r.vendor || "tak terbaca"))
+          : ("[OK] TERTUKAR: " + r.opus_path.split(/[\\/]/).pop() +
+             "\nBackup opus: " + (r.backup_opus || "--") +
+             "\nBackup data: " + (r.backup_data || "--") +
+             "\nBuka WhatsApp dan putar VN untuk verifikasi.");
+        $("rollback").disabled = !r.backup_opus;
+      } else {
+        rc.className = "banner danger";
+        rc.textContent = "[XX] " + (j.error || "gagal.");
+        $("rollback").disabled = !(j.result && j.result.backup_opus);
+      }
+    }
+  } catch (e) {
+    // keep polling on transient errors
+  }
+}
+async function startSwap() {
+  if (!state.target || !state.sourcePath) return;
+  $("log").textContent = ""; $("log").dataset.n = 0;
+  $("bar").style.width = "0%"; $("percent").textContent = "0%";
+  paintStages(["todo", "todo", "todo", "todo"]);
+  $("result-card").classList.add("hidden");
+  $("rollback").disabled = true;
+  go(4);
+  const body = {
+    target: state.target.path, source: state.sourcePath,
+    channels: state.channels, dry_run: state.dryRun,
+  };
+  const { id } = await api("/api/jobs", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).catch((e) => { 
+    $("result-card").classList.remove("hidden");
+    $("result-card").className = "banner danger";
+    $("result-card").textContent = "[XX] " + e.message;
+    throw e;
+  });
+  state.jobId = id;
+  if (state.poll) clearInterval(state.poll);
+  state.poll = setInterval(pollJob, 800);
+  pollJob();
+}
+
+/* ---- events ---- */
+$("target-filter").addEventListener("input", () => loadTargets().catch(() => {}));
+$("target-rescan").addEventListener("click", () => { loadTargets().catch(() => {}); refreshHealth(); });
+$("source-filter").addEventListener("input", paintSources);
+$("manual-path").addEventListener("input", checkManual);
+$("upload").addEventListener("change", async (e) => {
+  if (e.target.files[0]) { await uploadFile(e.target.files[0]).catch((err) => {
+    $("manual-status").textContent = "[XX] " + err.message;
+    $("manual-status").className = "manual-status"; }); }
+  e.target.value = "";
+});
+const dz = $("dropzone");
+["dragover", "dragenter"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("over"); }));
+dz.addEventListener("drop", async (e) => {
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) await uploadFile(f).catch((err) => { $("manual-status").textContent = "[XX] " + err.message; });
+});
+dz.addEventListener("click", () => $("upload").click());
+document.querySelectorAll('input[name=mode]').forEach((r) =>
+  r.addEventListener("change", () => {
+    state.dryRun = document.querySelector('input[name=mode]:checked').value === "preview";
+    refreshConfirm();
+  }));
+document.querySelectorAll('input[name=channels]').forEach((r) =>
+  r.addEventListener("change", () => {
+    state.channels = Number(document.querySelector('input[name=channels]:checked').value) === 2 ? 2 : 1;
+    refreshConfirm();
+  }));
+$("shared-apply").addEventListener("click", () => {
+  state.shared = $("shared-input").value.trim() || state.shared;
+  loadTargets().catch(() => {}); refreshHealth();
+});
+$("to-2").addEventListener("click", () => { if (state.target) { loadSources(); go(2); } });
+$("back-1").addEventListener("click", () => go(1));
+$("to-3").addEventListener("click", () => {
+  const manual = $("manual-path").value.trim();
+  if (manual) { state.sourcePath = manual; }
+  if (state.sourcePath) { refreshConfirm(); go(3); }
+});
+$("back-2").addEventListener("click", () => go(2));
+$("swap-now").addEventListener("click", startSwap);
+$("rollback").addEventListener("click", async () => {
+  if (!state.jobId) return;
+  try {
+    const j = await api("/api/jobs/" + state.jobId + "/rollback", { method: "POST" });
+    $("log").textContent += "[warn] rollback selesai: " + (j.restored || []).join(", ") + "\n";
+  } catch (e) { $("log").textContent += "[error] rollback gagal: " + e.message + "\n"; }
+});
+$("again").addEventListener("click", () => {
+  state.target = null; state.source = null; state.sourcePath = "";
+  $("manual-path").value = ""; $("target-filter").value = ""; $("source-filter").value = "";
+  loadTargets().catch(() => {}); go(1);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && document.activeElement && document.activeElement.tagName !== "INPUT") {
+    if (!$("step-1").classList.contains("hidden")) $("to-2").click();
+    else if (!$("step-3").classList.contains("hidden")) $("swap-now").click();
+  }
+});
+
+/* init */
+refreshHealth().then(loadTargets).catch(() => {});

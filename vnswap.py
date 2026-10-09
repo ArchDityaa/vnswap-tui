@@ -261,12 +261,31 @@ def main(argv: list[str] | None = None) -> int:
                         help="(deprecated, kini default) tulis langsung")
     parser.add_argument("--stereo", action="store_true")
     parser.add_argument("--cli", action="store_true")
+    parser.add_argument("--web", action="store_true",
+                        help="jalankan antarmuka web interaktif")
+    parser.add_argument("--host", default="127.0.0.1",
+                        help="host server web (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=8000,
+                        help="port server web (default: 8000)")
     args = parser.parse_args(argv)
 
     STATE.shared_dir = Path(args.shared)
     STATE.media_dirs = default_media_dirs()
     STATE.channels = 2 if args.stereo else 1
     STATE.apply_mode = not args.dry_run
+
+    if args.web:
+        import vnswap_web
+        srv = vnswap_web.run_server(args.host, args.port,
+                                    Path(args.shared), default_media_dirs())
+        print(f"vnswap web: http://{args.host}:{args.port}/")
+        print(f"shared: {args.shared}")
+        print("developed by hakiraadityaa (Ctrl+C untuk berhenti)")
+        try:
+            srv.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        return 0
 
     if args.cli:
         return run_cli(STATE)

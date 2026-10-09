@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>voicenote swapper — web</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-title">voicenote swapper</div>
+    <div class="brand-sub">audio dan video jadi voice note — by hakiraadityaa</div>
+  </div>
+  <div class="health" id="health">
+    <span class="dot" id="health-dot">…</span>
+    <span id="health-text">memuat…</span>
+  </div>
+</header>
+
+<nav class="stepper" id="stepper" aria-label="Langkah">
+  <button data-step="1" class="active"><b>1</b> TARGET</button>
+  <span class="sep">--</span>
+  <button data-step="2"><b>2</b> SUMBER</button>
+  <span class="sep">--</span>
+  <button data-step="3"><b>3</b> CEK</button>
+  <span class="sep">--</span>
+  <button data-step="4"><b>4</b> PROSES</button>
+</nav>
+
+<main class="wrap">
+  <div class="shared-row">
+    <label>Shared
+      <input id="shared-input" type="text" spellcheck="false">
+    </label>
+    <button id="shared-apply" class="btn ghost">Terapkan</button>
+    <span class="hint" id="shared-hint"></span>
+  </div>
+
+  <!-- STEP 1 -->
+  <section class="card step" id="step-1">
+    <h2>Target <span class="pill">STEP 1 DARI 3</span></h2>
+    <p class="muted">Voice note yang akan diganti. Paling baru di atas, klik baris untuk pilih.</p>
+    <div class="toolbar">
+      <input id="target-filter" type="search" placeholder="Filter: ketik untuk saring…">
+      <button id="target-rescan" class="btn ghost">Rescan</button>
+    </div>
+    <div class="table-wrap">
+      <table id="target-table">
+        <thead><tr><th></th><th>Nama</th><th>Dur</th><th>Lama</th><th>Size</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty hidden" id="target-empty"></div>
+    </div>
+    <div class="nav-row">
+      <span class="hint">Enter = Lanjut. R = Rescan.</span>
+      <button class="btn primary" id="to-2">Lanjut &gt;</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card step hidden" id="step-2">
+    <h2>Sumber <span class="pill">STEP 2 DARI 3</span></h2>
+    <p class="muted" id="source-context">—</p>
+    <div class="toolbar">
+      <input id="source-filter" type="search" placeholder="Filter daftar…">
+      <label class="btn ghost file-btn">Upload<input id="upload" type="file" hidden></label>
+    </div>
+    <div id="dropzone" class="dropzone">Seret &amp; letakkan file audio/video di sini, atau klik Upload.<br><span class="muted">mp3 m4a aac wav ogg opus flac weba · mp4 webm mov mkv 3gp</span></div>
+    <div class="table-wrap">
+      <table id="source-table">
+        <thead><tr><th></th><th>Nama</th><th>Tipe</th><th>Size</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <label class="manual">…atau path manual di server
+      <input id="manual-path" type="text" placeholder="/sdcard/Download/lagu.mp3" spellcheck="false">
+    </label>
+    <div class="manual-status" id="manual-status"></div>
+    <div class="nav-row">
+      <button class="btn ghost" id="back-1">&lt; Kembali</button>
+      <button class="btn primary" id="to-3">Lanjut &gt;</button>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="card step hidden" id="step-3">
+    <h2>Ringkasan <span class="pill">STEP 3 DARI 3</span></h2>
+    <p class="muted">Cek sekali sebelum tukar.</p>
+    <div class="two-col">
+      <div class="mini-card" id="confirm-target">TARGET<br>—</div>
+      <div class="mini-card" id="confirm-source">SUMBER<br>—</div>
+    </div>
+    <div class="wave-wrap">
+      <div class="wave-title">Pola visualisasi target</div>
+      <canvas id="wave" width="640" height="96"></canvas>
+      <div class="wave-ascii" id="wave-ascii"></div>
+    </div>
+    <div class="opts">
+      <fieldset>
+        <legend>Mode</legend>
+        <label><input type="radio" name="mode" value="write" checked> Tulis langsung + backup .bak</label>
+        <label><input type="radio" name="mode" value="preview"> Preview saja (dry-run)</label>
+      </fieldset>
+      <fieldset>
+        <legend>Channel</legend>
+        <label><input type="radio" name="channels" value="1" checked> Mono 32k voip</label>
+        <label><input type="radio" name="channels" value="2"> Stereo 64k beta</label>
+      </fieldset>
+    </div>
+    <div class="banner" id="mode-banner"></div>
+    <div class="banner warn hidden" id="size-warn"></div>
+    <div class="nav-row">
+      <button class="btn ghost" id="back-2">&lt; Kembali</button>
+      <button class="btn primary big" id="swap-now">TUKAR SEKARANG</button>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="card step hidden" id="step-4">
+    <h2>Proses <span class="pill">PROSES</span></h2>
+    <p class="muted">Backup .bak dibuat otomatis sebelum tulis.</p>
+    <ol class="stages" id="stages">
+      <li data-i="0">Encode opus</li>
+      <li data-i="1">Visual 20 bars per detik</li>
+      <li data-i="2">Backup .bak</li>
+      <li data-i="3">Swap atomik</li>
+    </ol>
+    <div class="progress-row">
+      <div class="progress"><div id="bar"></div></div>
+      <span id="percent">0%</span>
+    </div>
+    <pre class="log" id="log"></pre>
+    <div class="banner hidden" id="result-card"></div>
+    <div class="nav-row">
+      <button class="btn warn" id="rollback" disabled>Rollback</button>
+      <button class="btn ghost" id="again">Swap lain</button>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">developed by hakiraadityaa · <span id="foot-shared"></span></footer>
+<script src="/app.js" defer></script>
+</body>
+</html>
