@@ -180,6 +180,10 @@ Loopback (`127.0.0.1`) tidak perlu auth. Binding host non-loopback mengaktifkan
 token auth pada semua endpoint `/api/*`: token dibuat otomatis dan dicetak
 (buka URL `?token=...` yang tercetak), `--token RAHASIA` mengatur milik Anda
 sendiri, dan `--no-auth` menonaktifkannya (hanya untuk jaringan yang Anda percaya).
+Endpoint file (`/api/audio`, `/api/bars`, `/api/preview`, pembuatan job)
+hanya melayani path di dalam folder shared, folder media, folder unggahan,
+atau kandidat `.Shared` — request lain ditolak 403. Upload dibatasi 200 MB,
+unggahan kedaluwarsa 24 jam, dan POST `/api/*` dibatasi 30/menit per IP.
 
 ### Deteksi .Shared otomatis
 

@@ -95,6 +95,119 @@ STAGE_LABELS = [
 
 
 # ---------------------------------------------------------------------------
+# Batas keamanan LAN — anti-baca-sembarang, anti-DoS, anti-penumpukan.
+# ---------------------------------------------------------------------------
+
+_MAX_UPLOAD_BYTES = 200 * 1024 * 1024  # tolak body upload di atas ini
+_UPLOAD_TTL_SEC = 24 * 3600  # unggahan lebih tua dari ini dihapus otomatis
+_JOB_TTL_SEC = 2 * 3600  # job selesai/gagal lebih tua dari ini dibuang
+_MAX_JOBS = 50  # job aktif tersimpan, tertua dibuang bila penuh
+_RATE_MAX = 30  # request POST /api/* per IP per jendela
+_RATE_WINDOW = 60.0  # detik
+_CHUNK = 64 * 1024  # baca stream 64 KB per potong
+
+_rate_lock = threading.Lock()
+_rate_hits: dict[str, list[float]] = {}
+
+_candidate_cache: dict = {"t": 0.0, "roots": []}
+
+
+def _candidate_roots() -> list[Path]:
+    """Root kandidat .Shared milik perangkat (cache 60 detik)."""
+    now = time.monotonic()
+    if now - _candidate_cache["t"] < 60.0:
+        return list(_candidate_cache["roots"])
+    roots: list[Path] = []
+    try:
+        for p, _ in core.rank_shared_candidates():
+            try:
+                roots.append(p.resolve())
+            except OSError:
+                continue
+    except OSError:
+        pass
+    _candidate_cache["t"] = now
+    _candidate_cache["roots"] = roots
+    return list(roots)
+
+
+def _allowed_roots() -> list[Path]:
+    """Folder yang boleh dibaca/ditulis via API: shared + media + unggahan."""
+    roots: list[Path] = []
+    cands: list = [SERVER_CONFIG.get("shared_dir"),
+                   SERVER_CONFIG.get("upload_dir")]
+    cands.extend(SERVER_CONFIG.get("media_dirs", []))
+    for d in cands:
+        if isinstance(d, Path):
+            try:
+                roots.append(d.resolve())
+            except OSError:
+                continue
+    roots.extend(_candidate_roots())
+    return roots
+
+
+def _resolve_user_path(raw: str,
+                       extra: list[Path] | None = None) -> Path | None:
+    """Path file milik pengguna bila ada DAN di dalam root yang diizinkan.
+
+    Mengembalikan None bila tidak ada, bukan file, atau di luar sandbox
+    (mis. /etc/passwd) — pemanggil membedakan 404 vs 403 via is_file.
+    """
+    if not raw or not isinstance(raw, str):
+        return None
+    try:
+        p = Path(raw).resolve()
+    except OSError:
+        return None
+    if not p.is_file():
+        return None
+    roots = _allowed_roots()
+    for d in extra or []:
+        try:
+            roots.append(d.resolve())
+        except OSError:
+            continue
+    if any(p == r or r in p.parents for r in roots):
+        return p
+    return None
+
+
+def _rate_limited(ip: str) -> bool:
+    """Sliding window per IP untuk POST /api/*. True = tolak (429)."""
+    now = time.monotonic()
+    with _rate_lock:
+        hits = [t for t in _rate_hits.get(ip, [])
+                if now - t < _RATE_WINDOW]
+        if len(hits) >= _RATE_MAX:
+            _rate_hits[ip] = hits
+            return True
+        hits.append(now)
+        _rate_hits[ip] = hits
+        return False
+
+
+def _cleanup_uploads() -> int:
+    """Hapus file unggahan lebih tua dari _UPLOAD_TTL_SEC. Kembali jumlah."""
+    up = SERVER_CONFIG.get("upload_dir", UPLOAD_DIR)
+    if not isinstance(up, Path) or not up.is_dir():
+        return 0
+    cutoff = time.time() - _UPLOAD_TTL_SEC
+    removed = 0
+    try:
+        for p in up.iterdir():
+            try:
+                if p.is_file() and p.stat().st_mtime < cutoff:
+                    p.unlink(missing_ok=True)
+                    removed += 1
+            except OSError:
+                continue
+    except OSError:
+        pass
+    return removed
+
+
+# ---------------------------------------------------------------------------
 # Penyimpanan job
 # ---------------------------------------------------------------------------
 
@@ -102,6 +215,19 @@ class JobStore:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._jobs: dict[str, dict] = {}
+
+    def purge(self) -> None:
+        """Buang job kedaluwarsa (TTL) dan potong sampai _MAX_JOBS."""
+        now = time.time()
+        with self._lock:
+            old = [jid for jid, j in self._jobs.items()
+                   if now - j.get("created", now) > _JOB_TTL_SEC]
+            for jid in old:
+                del self._jobs[jid]
+            while len(self._jobs) > _MAX_JOBS:
+                oldest = min(self._jobs,
+                             key=lambda k: self._jobs[k].get("created", 0))
+                del self._jobs[oldest]
 
     def create(self, target: str, source: str, channels: int, dry_run: bool) -> dict:
         jid = uuid.uuid4().hex[:12]
@@ -119,8 +245,10 @@ class JobStore:
             "error": None,
             "created": time.time(),
         }
+        self.purge()
         with self._lock:
             self._jobs[jid] = job
+        self.purge()
         return job
 
     def get(self, jid: str) -> dict | None:
@@ -382,12 +510,15 @@ def run_job(job_id: str) -> None:
 # Lapisan HTTP
 # ---------------------------------------------------------------------------
 
-def _send_json(handler: BaseHTTPRequestHandler, obj, status: int = 200) -> None:
+def _send_json(handler: BaseHTTPRequestHandler, obj, status: int = 200,
+               extra_headers: dict | None = None) -> None:
     body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
     handler.send_header("Content-Length", str(len(body)))
     handler.send_header("Cache-Control", "no-store")
+    for k, v in (extra_headers or {}).items():
+        handler.send_header(k, v)
     handler.end_headers()
     handler.wfile.write(body)
 
@@ -429,6 +560,7 @@ def _sources_payload(dirs: list[Path]) -> list[dict]:
             "supported": core.is_supported_source(p),
         })
     # file upload dulu (terbaru)
+    _cleanup_uploads()
     up = SERVER_CONFIG.get("upload_dir", UPLOAD_DIR)
     try:
         if isinstance(up, Path) and up.is_dir():
@@ -454,49 +586,105 @@ def _sources_payload(dirs: list[Path]) -> list[dict]:
     return out
 
 
+def _extra_shared(qs: dict) -> list[Path]:
+    """Dir `?shared=` / body `shared` per-request sebagai root tambahan."""
+    out: list[Path] = []
+    for key in ("shared",):
+        val = qs.get(key, [None])[0] if isinstance(qs, dict) else None
+        if val and isinstance(val, str):
+            p = Path(val)
+            if p.is_dir():
+                out.append(p)
+    return out
+
+
+def _forbidden() -> dict:
+    return {"error": "path di luar folder yang diizinkan "
+                     "(shared/media/unggahan) — pakai path manual "
+                     "di dalam folder media atau unggah via web."}
+
+
 def _save_multipart(handler: BaseHTTPRequestHandler) -> dict | None:
+    """Simpan satu file multipart ke folder unggahan secara streaming.
+
+    Header dibaca dulu (maks 64 KB), isi ditulis ke disk per potong 64 KB
+    sambil memindai pembatas — RAM terpakai konstan berapa pun ukuran file.
+    Menolak body di atas _MAX_UPLOAD_BYTES dan file kosong.
+    """
     ctype = handler.headers.get("Content-Type", "")
     if "multipart/form-data" not in ctype or "boundary=" not in ctype:
         return None
     boundary = ctype.split("boundary=")[-1].strip().strip('"').encode()
+    if not boundary or len(boundary) > 200:
+        return None
     try:
         length = int(handler.headers.get("Content-Length", "0"))
     except ValueError:
         return None
-    if length <= 0 or length > 600 * 1024 * 1024:
+    if length <= 0 or length > _MAX_UPLOAD_BYTES:
         return None
-    raw = handler.rfile.read(length)
-    # parser file tunggal minimal: cari filename="..." lalu \r\n\r\n ... \r\n--boundary
+    rfile = handler.rfile
+    head = rfile.read(min(_CHUNK, length))
     marker = b'filename="'
-    idx = raw.find(marker)
+    idx = head.find(marker)
     if idx < 0:
         return None
     start = idx + len(marker)
-    end = raw.find(b'"', start)
-    fname = raw[start:end].decode("utf-8", "replace")
+    end = head.find(b'"', start)
+    if end < 0:
+        return None
+    fname = head[start:end].decode("utf-8", "replace")
     fname = Path(fname).name or f"upload-{uuid.uuid4().hex[:8]}"
     # pertahankan ekstensi, bersihkan
     safe = "".join(c for c in fname if c.isalnum() or c in "._- ")[:120].strip()
     if not safe:
         safe = f"upload-{uuid.uuid4().hex[:8]}"
-    head_end = raw.find(b"\r\n\r\n", end)
+    head_end = head.find(b"\r\n\r\n", end)
     if head_end < 0:
         return None
-    content_start = head_end + 4
-    tail = raw.rfind(b"\r\n--" + boundary)
-    if tail < 0:
-        tail = raw.rfind(b"--" + boundary + b"--")
-    if tail < 0 or tail <= content_start:
-        return None
-    payload = raw[content_start:tail]
-    if payload.endswith(b"\r\n"):
-        payload = payload[:-2]
     upload_dir: Path = SERVER_CONFIG.get("upload_dir", UPLOAD_DIR)
     upload_dir.mkdir(parents=True, exist_ok=True)
     dest = upload_dir / f"{int(time.time())}-{safe}"
-    dest.write_bytes(payload)
-    return {"name": dest.name, "path": str(dest), "size": len(payload),
-            "size_str": fmt_size(len(payload))}
+    delim = b"\r\n--" + boundary
+    overlap = len(delim) + 4
+    buf = head[head_end + 4:]
+    remaining = length - len(head)
+    size = 0
+    try:
+        with open(dest, "wb") as fh:
+            done = False
+            while True:
+                at = buf.find(delim)
+                if at >= 0:
+                    fh.write(buf[:at])
+                    size += at
+                    done = True
+                    break
+                if len(buf) > overlap:
+                    fh.write(buf[:len(buf) - overlap])
+                    size += len(buf) - overlap
+                    buf = buf[len(buf) - overlap:]
+                more = rfile.read(min(_CHUNK, max(0, remaining)))
+                if not more:
+                    break
+                remaining -= len(more)
+                buf += more
+            if not done:
+                raise ValueError("pembatas akhir tidak ditemukan")
+    except (OSError, ValueError):
+        try:
+            dest.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return None
+    if size <= 0:
+        try:
+            dest.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return None
+    return {"name": dest.name, "path": str(dest), "size": size,
+            "size_str": fmt_size(size)}
 
 
 _AUDIO_MIME = {
@@ -688,9 +876,11 @@ class Handler(BaseHTTPRequestHandler):
             req = qs.get("path", [None])[0]
             if not req:
                 return _send_json(self, {"error": "path wajib diisi"}, 400)
-            p = Path(req)
-            if not p.is_file():
+            if not Path(req).is_file():
                 return _send_json(self, {"error": "file tidak ada"}, 404)
+            p = _resolve_user_path(req, _extra_shared(qs))
+            if p is None:
+                return _send_json(self, _forbidden(), 403)
             try:
                 raw = p.read_bytes()
             except OSError as exc:
@@ -709,6 +899,11 @@ class Handler(BaseHTTPRequestHandler):
             tpath, spath = Path(treq), Path(sreq)
             if not tpath.is_file() or not spath.is_file():
                 return _send_json(self, {"error": "file tidak ada"}, 404)
+            extra = _extra_shared(qs)
+            tpath = _resolve_user_path(treq, extra)
+            spath = _resolve_user_path(sreq, extra)
+            if tpath is None or spath is None:
+                return _send_json(self, _forbidden(), 403)
             try:
                 raw = tpath.read_bytes()
                 length, _ = core.parse_target_visualization_data(
@@ -741,9 +936,11 @@ class Handler(BaseHTTPRequestHandler):
             req = qs.get("path", [None])[0]
             if not req:
                 return _send_json(self, {"error": "path wajib diisi"}, 400)
-            p = Path(req)
-            if not p.is_file():
+            if not Path(req).is_file():
                 return _send_json(self, {"error": "file tidak ada"}, 404)
+            p = _resolve_user_path(req, _extra_shared(qs))
+            if p is None:
+                return _send_json(self, _forbidden(), 403)
             return _serve_media(self, p)
         if path == "/api/shared-candidates":
             try:
@@ -808,6 +1005,12 @@ class Handler(BaseHTTPRequestHandler):
 
         if path.startswith("/api/") and not self._require_api_auth():
             return
+        if path.startswith("/api/"):
+            ip = self.client_address[0] if self.client_address else "?"
+            if _rate_limited(ip):
+                return _send_json(self, {
+                    "error": "terlalu banyak request — tunggu sebentar.",
+                }, 429, {"Retry-After": "60"})
         if path == "/api/upload":
             saved = _save_multipart(self)
             if not saved:
@@ -840,13 +1043,21 @@ class Handler(BaseHTTPRequestHandler):
             if not target or not source:
                 return _send_json(self, {
                     "error": "target dan source wajib diisi"}, 400)
+            extra = []
+            shared_req = str(body.get("shared", "")).strip()
+            if shared_req and Path(shared_req).is_dir():
+                extra.append(Path(shared_req))
             if not Path(target).is_file():
                 return _send_json(self, {
                     "error": "file target tidak ada"}, 400)
             if not Path(source).is_file():
                 return _send_json(self, {
                     "error": "file sumber tidak ada"}, 400)
-            job = STORE.create(target, source, channels, dry_run)
+            rtarget = _resolve_user_path(target, extra)
+            rsource = _resolve_user_path(source, extra)
+            if rtarget is None or rsource is None:
+                return _send_json(self, _forbidden(), 403)
+            job = STORE.create(str(rtarget), str(rsource), channels, dry_run)
             t = threading.Thread(target=run_job, args=(job["id"],),
                                  daemon=True)
             t.start()
@@ -892,6 +1103,7 @@ def run_server(host: str = "127.0.0.1", port: int = 8000,
     SERVER_CONFIG["upload_dir"] = UPLOAD_DIR
     SERVER_CONFIG["token"] = token
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    _cleanup_uploads()
     try:
         srv = ThreadingHTTPServer((host, port), Handler)
     except OSError as exc:

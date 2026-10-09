@@ -17,6 +17,7 @@ const TOKEN = (() => {
 
 function fileUrl(endpoint, filePath) {
   const q = new URLSearchParams({ path: filePath });
+  if (state.shared) q.set("shared", state.shared);
   if (TOKEN) q.set("token", TOKEN);
   return endpoint + "?" + q.toString();
 }
@@ -454,6 +455,7 @@ async function startSwap() {
   const body = {
     target: state.target.path, source: state.sourcePath,
     channels: state.channels, dry_run: state.dryRun,
+    shared: state.shared || undefined,
   };
   const { id } = await api("/api/jobs", {
     method: "POST", headers: { "Content-Type": "application/json" },

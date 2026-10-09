@@ -6,6 +6,21 @@ penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Keamanan (LAN)
+
+- Sandbox path API: `/api/audio`, `/api/bars`, `/api/preview`, dan
+  `POST /api/jobs` kini hanya melayani file di dalam folder shared, folder
+  media, folder unggahan, atau kandidat `.Shared` perangkat (403 bila di
+  luar). Frontend mengirim `shared` aktif agar path manual tetap jalan.
+- Upload streaming: isi multipart ditulis ke disk per 64 KB (RAM konstan),
+  batas body 200 MB, file kosong ditolak.
+- Pembersihan otomatis: unggahan > 24 jam dihapus saat server mulai dan
+  saat daftar sumber dimuat; job > 2 jam dibuang, maksimal 50 job tersimpan.
+- Rate limit: POST `/api/*` dibatasi 30 request/menit per IP (429 +
+  `Retry-After` bila lewat).
+
+## [Unreleased]
+
 ## [1.9.0] — 2026-10-09
 
 ### Ditambahkan
