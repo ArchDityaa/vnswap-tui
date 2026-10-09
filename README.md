@@ -76,7 +76,7 @@ cd vnswap-tui
 Atau sekali jalan di Termux (dependensi + clone + perintah `vnswap`):
 
 ```bash
-sh install.sh
+chmod +x install.sh && sh install.sh
 ```
 
 Sesudah itu perintah `vnswap` bisa diketik dari mana saja:
