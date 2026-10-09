@@ -625,7 +625,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self._serve_static(path[len("/static/"):]):
                 self.send_error(404)
             return
-        if path in ("/styles.css", "/app.js"):
+        if path in ("/styles.css", "/app.js", "/sw.js",
+                      "/manifest.webmanifest", "/icon-192.png",
+                      "/icon-512.png", "/maskable-512.png",
+                      "/apple-touch-icon.png"):
             if not self._serve_static(path.lstrip("/")):
                 self.send_error(404)
             return

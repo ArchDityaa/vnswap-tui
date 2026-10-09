@@ -1,6 +1,6 @@
 [project]
 name = "vnswap-tui"
-version = "1.8.0"
+version = "1.9.0"
 description = "Tukar voice note WhatsApp langsung dari Termux — TUI, CLI, dan UI web."
 readme = "README.md"
 license = { text = "MIT" }

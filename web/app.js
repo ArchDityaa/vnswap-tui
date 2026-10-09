@@ -550,6 +550,11 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* mulai */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
 refreshHealth().then(() => {
   loadCandidates().catch(() => {});
   loadTargets().catch(() => {});

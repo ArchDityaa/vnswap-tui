@@ -6,6 +6,18 @@ penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.9.0] — 2026-10-09
+
+### Ditambahkan
+
+- PWA "instal ke layar utama": `manifest.webmanifest` (standalone,
+  tema gelap, ikon 192/512 + maskable), ikon `apple-touch-icon`,
+  dan `sw.js` yang meng-cache kerangka aplikasi untuk buka offline —
+  `/api/*` selalu lewat jaringan. Buka sekali di browser HP lalu
+  "Add to Home screen" / "Instal aplikasi".
+- `tests/test_pwa.py`: validasi manifest, tautan HTML/registrasi SW,
+  jaminan SW tak meng-cache API, dan rute statis PWA di server.
+
 ## [1.8.0] — 2026-10-09
 
 ### Ditambahkan

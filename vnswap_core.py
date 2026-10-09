@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # Versi rilis — satu-satunya sumber kebenaran (dicerminkan di pyproject.toml).
-VERSION = "1.8.0"
+VERSION = "1.9.0"
 
 # --------------------------------------------------------------------------
 # Konstanta — harus sama persis dengan aplikasi web
