@@ -36,6 +36,24 @@ function esc(s) {
   return String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 }
 
+async function copyFix(text, btn) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (_e) {}
+    ta.remove();
+  }
+  if (btn) {
+    const old = btn.textContent;
+    btn.textContent = "Disalin";
+    setTimeout(() => { btn.textContent = old; }, 1200);
+  }
+}
+
 function go(n) {
   for (let i = 1; i <= 4; i++) {
     $("step-" + i).classList.toggle("hidden", i !== n);
@@ -82,16 +100,48 @@ async function refreshHealth() {
     if (hb) {
       if (!failed.length) {
         hb.classList.add("hidden");
-        hb.textContent = "";
+        hb.innerHTML = "";
       } else {
-        const lines = ["[!!] Pemeriksaan kesehatan:"];
-        failed.slice(0, 5).forEach((c) => {
-          lines.push("[XX] " + c.label + ": " + c.detail);
-          if (c.fix) lines.push("     Perbaiki: " + c.fix);
-        });
-        lines.push("Detail: jalankan `vnswap health` di Termux.");
-        hb.textContent = lines.join("\n");
         hb.classList.remove("hidden");
+        hb.innerHTML = "";
+        const title = document.createElement("div");
+        title.className = "banner-title";
+        title.textContent = "[!!] Pemeriksaan kesehatan (" + failed.length + " masalah)";
+        const ul = document.createElement("ul");
+        ul.className = "health-list";
+        ul.id = "health-list";
+        failed.slice(0, 5).forEach((c) => {
+          const li = document.createElement("li");
+          const label = document.createElement("div");
+          label.className = "health-label";
+          label.textContent = "[XX] " + c.label;
+          li.appendChild(label);
+          const detail = document.createElement("div");
+          detail.className = "health-detail";
+          detail.textContent = c.detail;
+          li.appendChild(detail);
+          if (c.fix) {
+            const row = document.createElement("div");
+            row.className = "fix-row";
+            const code = document.createElement("code");
+            code.textContent = c.fix;
+            const btn = document.createElement("button");
+            btn.className = "fix-copy";
+            btn.type = "button";
+            btn.textContent = "Salin";
+            btn.addEventListener("click", () => copyFix(c.fix, btn));
+            row.appendChild(code);
+            row.appendChild(btn);
+            li.appendChild(row);
+          }
+          ul.appendChild(li);
+        });
+        const foot = document.createElement("div");
+        foot.className = "health-foot";
+        foot.textContent = "Detail penuh: jalankan `vnswap health` di Termux.";
+        hb.appendChild(title);
+        hb.appendChild(ul);
+        hb.appendChild(foot);
       }
     }
   } catch (e) {

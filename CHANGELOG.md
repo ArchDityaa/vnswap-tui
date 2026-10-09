@@ -17,6 +17,15 @@ penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
   startup; TUI menampilkan banner peringatan di layar Target; web
   menampilkan banner di atas wizard via `checks` baru di `/api/health`.
 
+### Diubah
+
+- Tema web Catppuccin disempurnakan (tetap Mocha, hanya gelap): satu aksen
+  mauve untuk aksi primer (`--primary`), tombol primer tak lagi hijau;
+  border kartu/table dipertegas (`surface1`), radius 18px ke 14px; teks
+  sekunder lebih terang untuk keterbacaan; banner kesehatan jadi daftar
+  terstruktur dengan perintah perbaikan dalam `<code>` + tombol Salin;
+  pill health tidak lagi terpotong di layar sempit.
+
 ## [1.7.1] — 2026-10-09
 
 ### Diperbaiki

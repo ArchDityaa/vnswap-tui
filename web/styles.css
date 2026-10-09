@@ -3,10 +3,13 @@
   --base:#1E1E2E; --mantle:#181825; --crust:#11111B;
   --surface0:#313244; --surface1:#45475A; --surface2:#585B70;
   --overlay0:#6C7086; --overlay1:#7F849C;
-  --text:#CDD6F4; --subtext:#A6ADC8;
+  --text:#CDD6F4; --subtext:#BAC2DE;
   --accent:#CBA6F7; --green:#A6E3A1; --teal:#94E2D5;
   --sky:#89DCEB; --yellow:#F9E2AF; --red:#F38BA8;
-  --radius:18px;
+  /* Aksen tunggal: mauve untuk aksi primer + penanda aktif.
+     Hijau hanya untuk status sukses, sky/teal hanya info. */
+  --primary:#CBA6F7; --primary-text:#11111B;
+  --radius:14px;
   --tap:48px;
   --header-h:60px;
   --sat:env(safe-area-inset-top, 0px);
@@ -43,6 +46,11 @@ body{background:var(--crust);color:var(--text);
   border:1px solid var(--surface1);border-radius:999px;
   padding:8px 12px;background:var(--surface0)}
 .health span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){
+  .health{max-width:none;font-size:.72rem;padding:6px 10px}
+  .health span:last-child{white-space:normal;display:-webkit-box;
+    -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--overlay0);flex:none}
 .dot.ok{background:var(--green);box-shadow:0 0 8px rgba(166,227,161,.7)}
 .dot.bad{background:var(--red)}
@@ -71,7 +79,7 @@ body{background:var(--crust);color:var(--text);
 .wrap{width:100%;max-width:980px;margin:0 auto;padding:14px 12px 28px;flex:1}
 
 /* ---- kartu folder .Shared yang bisa dilipat ---- */
-.shared-card{background:var(--mantle);border:1px solid var(--surface0);
+.shared-card{background:var(--mantle);border:1px solid var(--surface1);
   border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
 .shared-card summary{display:flex;align-items:center;gap:8px;list-style:none;
   min-height:var(--tap);padding:6px 16px;cursor:pointer;font-weight:700;font-size:.9rem}
@@ -87,7 +95,7 @@ body{background:var(--crust);color:var(--text);
 .shared-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 
 /* ---- kartu langkah ---- */
-.card{background:var(--mantle);border:1px solid var(--surface0);
+.card{background:var(--mantle);border:1px solid var(--surface1);
   border-radius:var(--radius);padding:18px 16px;margin:0 0 12px;
   box-shadow:0 10px 28px rgba(0,0,0,.35);scroll-margin-top:130px}
 .eyebrow{font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
@@ -111,8 +119,8 @@ summary:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);o
   transition:transform .08s,background .15s,border-color .15s;touch-action:manipulation}
 .btn:hover{border-color:var(--surface2)}
 .btn:active{transform:scale(.97)}
-.btn.primary{background:var(--green);border-color:var(--green);color:var(--crust)}
-.btn.primary:hover{background:#B8E8B5}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-text)}
+.btn.primary:hover{background:var(--primary);border-color:var(--primary);filter:brightness(1.1)}
 .btn.big{font-size:1rem}
 .btn.ghost{background:var(--surface0)}
 .btn.warn{background:var(--yellow);border-color:var(--yellow);color:#3a2c07}
@@ -120,7 +128,7 @@ summary:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);o
 .file-btn{flex:none}
 
 /* ---- daftar sebagai kartu di layar kecil ---- */
-.table-wrap{border:1px solid var(--surface0);border-radius:14px;
+.table-wrap{border:1px solid var(--surface1);border-radius:var(--radius);
   overflow:hidden;background:var(--crust)}
 table{width:100%;border-collapse:collapse;font-size:.85rem}
 thead{display:none}
@@ -204,6 +212,20 @@ fieldset input{width:20px;height:20px;flex:none;accent-color:var(--accent)}
 .banner.warn{border-left-color:var(--yellow);background:rgba(249,226,175,.07)}
 .banner.danger{border-left-color:var(--red);background:rgba(243,139,168,.08)}
 .banner.ok{border-left-color:var(--green);background:rgba(166,227,161,.08)}
+.banner-title{font-weight:800;margin-bottom:8px}
+.health-list{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:10px}
+.health-list li{display:grid;gap:4px}
+.health-list .health-label{font-weight:700}
+.health-list .health-detail{color:var(--subtext);font-size:.82rem;overflow-wrap:anywhere}
+.fix-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fix-row code{flex:1;min-width:0;background:var(--crust);border:1px solid var(--surface1);
+  border-radius:8px;padding:8px 10px;font-size:.8rem;
+  font-family:ui-monospace,Menlo,Consolas,monospace;overflow-x:auto;white-space:pre}
+.fix-copy{flex:none;background:var(--surface0);color:var(--text);
+  border:1px solid var(--surface1);border-radius:8px;min-height:40px;
+  padding:6px 12px;cursor:pointer;font-size:.8rem;font-weight:700}
+.fix-copy:hover{border-color:var(--accent)}
+.health-foot{color:var(--subtext);font-size:.78rem}
 
 .stages{list-style:none;margin:0 0 12px;padding:14px;background:var(--crust);
   border:1px solid var(--surface0);border-radius:14px;display:grid;gap:10px}
