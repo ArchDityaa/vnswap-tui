@@ -165,6 +165,36 @@ Anything ffmpeg can decode is attempted; unsupported extensions warn but still t
 | No targets found | Play one voice note in WhatsApp first, then `R` (Rescan) |
 | Encode always fails | Verify the source file opens; try `--dry-run` to isolate |
 
+## Roadmap
+
+Planned next steps — grouped by goal. Contributions welcome against any item.
+
+### More advanced
+
+- [ ] Batch queue: swap several target/source pairs in one run (web job queue exists — surface it in the UI, TUI, and CLI)
+- [ ] Trim control: set start/end or max duration before encode (`ffmpeg -ss/-t`), with duration-aware sidecar sizing
+- [ ] Source waveform preview: compute the replacement bars *before* swapping (new `/api/preview` endpoint) and draw target-vs-source side by side on the Confirm step
+- [ ] Duration check, not just size: warn when source audio is much longer than the target VN, not only when the file is large
+- [ ] Live progress over Server-Sent Events instead of polling in the web client
+- [ ] Backup manager: list, restore, and prune accumulated `.bak-timestamp` files from `.Shared`
+- [ ] Swap history (JSONL log) with undo-from-history
+
+### More user-friendly
+
+- [ ] Indonesian/English language toggle (UI is Indonesian-only today) across TUI, CLI, and web
+- [ ] In-browser audio preview: play the uploaded source and the current target `.opus` before confirming
+- [ ] First-run health check: verify ffmpeg, shared dir, and storage permission up front with copy-paste fix commands
+- [ ] Full keyboard flow in the web UI (arrow-key selection, `Enter` to advance, `R` to rescan), matching the TUI
+- [ ] Termux widget shortcut for one-tap launch of the TUI or web server
+
+### More professional
+
+- [ ] `LICENSE` file (MIT recommended — the License section above is currently a placeholder)
+- [ ] `requirements.txt` / `pyproject.toml` with a pinned `textual` version, plus a `--version` flag and `CHANGELOG.md`
+- [ ] `pytest` suite for `vnswap_core` (stdlib-only by design, so it runs anywhere) with GitHub Actions CI on every push
+- [ ] Token auth for `--host 0.0.0.0` LAN mode in the web server (it currently serves unauthenticated)
+- [ ] Contributing guide and issue templates; tagged releases
+
 ## License
 
 Private project — all rights reserved unless a `LICENSE` file is added.
