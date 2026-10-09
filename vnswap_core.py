@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # Versi rilis — satu-satunya sumber kebenaran (dicerminkan di pyproject.toml).
-VERSION = "1.7.1"
+VERSION = "1.8.0"
 
 # --------------------------------------------------------------------------
 # Konstanta — harus sama persis dengan aplikasi web
@@ -434,6 +434,251 @@ def restore_backup(result: SwapResult) -> None:
                 shutil.copy2(backup, dest)
             except OSError:
                 continue
+
+
+# --------------------------------------------------------------------------
+# Pemeriksaan kesehatan awal — ffmpeg, folder .Shared, izin, dan prasyarat.
+# Hanya stdlib agar bisa dipakai TUI, CLI, dan web tanpa dependensi tambahan.
+# --------------------------------------------------------------------------
+
+@dataclass
+class HealthCheck:
+    """Satu baris hasil pemeriksaan kesehatan awal."""
+
+    id: str  # mis. "ffmpeg", "shared_exists"
+    label: str  # judul singkat Bahasa Indonesia
+    ok: bool
+    detail: str  # penjelasan satu baris
+    fix: str | None = None  # perintah perbaikan siap salin-tempel
+
+
+def _is_termux() -> bool:
+    prefix = os.environ.get("PREFIX", "")
+    return (
+        "TERMUX_VERSION" in os.environ
+        or "com.termux" in prefix
+        or "com.termux" in os.environ.get("HOME", "")
+    )
+
+
+def check_health(
+    shared_dir: Path | None = None,
+    media_dirs: list[Path] | None = None,
+) -> list[HealthCheck]:
+    """Verifikasi prasyarat jalan: ffmpeg, folder .Shared, izin, dan lingkungan.
+
+    Tidak pernah raise untuk kondisi yang bisa dicek — setiap masalah
+    dikembalikan sebagai HealthCheck(ok=False) beserta perintah perbaikan.
+    """
+    import sys
+
+    shared = Path(shared_dir) if shared_dir is not None else auto_shared_dir()
+    out: list[HealthCheck] = []
+
+    # 1. ffmpeg
+    ffmpeg = find_ffmpeg()
+    out.append(HealthCheck(
+        id="ffmpeg",
+        label="ffmpeg terpasang",
+        ok=bool(ffmpeg),
+        detail=ffmpeg if ffmpeg else "ffmpeg tidak ditemukan di PATH",
+        fix=None if ffmpeg else "pkg install ffmpeg -y",
+    ))
+
+    # 2. folder .Shared ada
+    exists = shared.is_dir()
+    if exists:
+        out.append(HealthCheck(
+            id="shared_exists",
+            label="folder .Shared ditemukan",
+            ok=True,
+            detail=str(shared),
+        ))
+    else:
+        out.append(HealthCheck(
+            id="shared_exists",
+            label="folder .Shared ditemukan",
+            ok=False,
+            detail=f"tidak ada: {shared}",
+            fix="termux-setup-storage  # lalu putar satu VN di WhatsApp",
+        ))
+
+    # 3. bisa dibaca (list)
+    if not exists:
+        out.append(HealthCheck(
+            id="shared_read",
+            label="folder .Shared bisa dibaca",
+            ok=False,
+            detail="folder tidak ada, baca tidak bisa dicek",
+            fix="termux-setup-storage",
+        ))
+    else:
+        try:
+            next(shared.iterdir(), None)
+            out.append(HealthCheck(
+                id="shared_read",
+                label="folder .Shared bisa dibaca",
+                ok=True,
+                detail=str(shared),
+            ))
+        except OSError as exc:
+            out.append(HealthCheck(
+                id="shared_read",
+                label="folder .Shared bisa dibaca",
+                ok=False,
+                detail=f"tidak bisa dibaca: {exc}",
+                fix="termux-setup-storage  # beri izin penyimpanan lalu ulangi",
+            ))
+
+    # 4. bisa ditulis (coba tulis file sementara lalu hapus)
+    if not exists:
+        out.append(HealthCheck(
+            id="shared_write",
+            label="folder .Shared bisa ditulis",
+            ok=False,
+            detail="folder tidak ada, tulis tidak bisa dicek",
+            fix="termux-setup-storage",
+        ))
+    else:
+        probe = shared / ".vnswap-write-test"
+        try:
+            probe.write_bytes(b"ok")
+            probe.unlink(missing_ok=True)
+            out.append(HealthCheck(
+                id="shared_write",
+                label="folder .Shared bisa ditulis",
+                ok=True,
+                detail=str(shared),
+            ))
+        except OSError as exc:
+            out.append(HealthCheck(
+                id="shared_write",
+                label="folder .Shared bisa ditulis",
+                ok=False,
+                detail=f"tidak bisa ditulis: {exc}",
+                fix="termux-setup-storage  # beri izin penyimpanan lalu ulangi",
+            ))
+
+    # 5. izin penyimpanan Termux (~/storage). Di luar Termux selalu lolos.
+    if not _is_termux():
+        out.append(HealthCheck(
+            id="storage",
+            label="izin penyimpanan",
+            ok=True,
+            detail="bukan Termux, pemeriksaan izin dilewati",
+        ))
+    else:
+        storage = Path.home() / "storage"
+        if storage.is_dir():
+            out.append(HealthCheck(
+                id="storage",
+                label="izin penyimpanan",
+                ok=True,
+                detail=str(storage),
+            ))
+        else:
+            out.append(HealthCheck(
+                id="storage",
+                label="izin penyimpanan",
+                ok=False,
+                detail="~/storage tidak ada — izin penyimpanan belum diberikan",
+                fix="termux-setup-storage",
+            ))
+
+    # 6. ada target voice-note di folder terpilih
+    try:
+        n = count_shared_targets(shared) if exists else 0
+    except OSError:
+        n = 0
+    if n > 0:
+        out.append(HealthCheck(
+            id="targets",
+            label="target voice-note ada",
+            ok=True,
+            detail=f"{n} target di {shared}",
+        ))
+    else:
+        out.append(HealthCheck(
+            id="targets",
+            label="target voice-note ada",
+            ok=False,
+            detail=f"0 target di {shared}",
+            fix="Buka WhatsApp, putar satu voice note, lalu: TUI tekan R (Pindai Ulang)",
+        ))
+
+    # 7. folder sumber media (minimal satu ada — untuk penemuan otomatis)
+    dirs = list(media_dirs) if media_dirs is not None else []
+    if dirs:
+        found = [str(d) for d in dirs if Path(d).is_dir()]
+        if found:
+            out.append(HealthCheck(
+                id="media",
+                label="folder sumber media",
+                ok=True,
+                detail=f"{len(found)}/{len(dirs)} ada (mis. {found[0]})",
+            ))
+        else:
+            out.append(HealthCheck(
+                id="media",
+                label="folder sumber media",
+                ok=False,
+                detail="tidak satu pun folder media ada — penemuan otomatis kosong",
+                fix="termux-setup-storage  # atau pakai path manual / unggah di web",
+            ))
+    else:
+        out.append(HealthCheck(
+            id="media",
+            label="folder sumber media",
+            ok=True,
+            detail="daftar media kosong, penemuan otomatis dilewati",
+        ))
+
+    # 8. textual (untuk TUI layar penuh; CLI/web tidak butuh)
+    try:
+        import textual  # noqa: F401
+
+        out.append(HealthCheck(
+            id="textual",
+            label="Textual untuk TUI",
+            ok=True,
+            detail="terpasang",
+        ))
+    except ImportError:
+        out.append(HealthCheck(
+            id="textual",
+            label="Textual untuk TUI",
+            ok=False,
+            detail="textual belum terpasang — TUI jatuh ke mode teks",
+            fix="pip install textual  # atau pakai: vnswap cli",
+        ))
+
+    # 9. versi Python
+    py_ok = sys.version_info >= (3, 10)
+    out.append(HealthCheck(
+        id="python",
+        label="Python 3.10+",
+        ok=py_ok,
+        detail=".".join(map(str, sys.version_info[:3])),
+        fix=None if py_ok else "pkg install python -y  # butuh Python 3.10+",
+    ))
+
+    return out
+
+
+def health_failed(checks: list[HealthCheck]) -> list[HealthCheck]:
+    """Subset pemeriksaan yang gagal."""
+    return [c for c in checks if not c.ok]
+
+
+def format_health_report(checks: list[HealthCheck]) -> str:
+    """Laporan teks satu baris per cek, dengan perintah perbaikan."""
+    lines: list[str] = []
+    for c in checks:
+        mark = "[OK]" if c.ok else "[XX]"
+        lines.append(f"{mark} {c.label}: {c.detail}")
+        if not c.ok and c.fix:
+            lines.append(f"     Perbaiki: {c.fix}")
+    return "\n".join(lines)
 
 
 # --------------------------------------------------------------------------

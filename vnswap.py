@@ -254,13 +254,43 @@ def run_pipeline(state: AppState) -> int:
     return 0
 
 
-SUBCOMMANDS = ("tui", "cli", "web", "update")
+def print_health_issues(shared: Path, media_dirs: list[Path]) -> None:
+    """Cetak ringkasan masalah kesehatan awal (bila ada) sebelum jalan."""
+    try:
+        checks = core.check_health(shared, media_dirs)
+    except Exception:
+        return
+    failed = core.health_failed(checks)
+    if not failed:
+        return
+    cprint("[!!] pemeriksaan kesehatan menemukan masalah:", "yellow", bold=True)
+    for c in failed:
+        print(f"[XX] {c.label}: {c.detail}")
+        if c.fix:
+            print(f"     Perbaiki: {c.fix}")
+    print("Detail penuh: vnswap health")
+
+
+def run_health(shared: Path, media_dirs: list[Path]) -> int:
+    """Subcommand `health`: laporan lengkap + kode kembali 0/1."""
+    checks = core.check_health(shared, media_dirs)
+    print(core.format_health_report(checks))
+    failed = core.health_failed(checks)
+    if not failed:
+        cprint("[OK] semua pemeriksaan lolos.", "green", bold=True)
+        return 0
+    cprint(f"[XX] {len(failed)} pemeriksaan gagal (lihat Perbaiki di atas).", "red", bold=True)
+    return 1
+
+
+SUBCOMMANDS = ("tui", "cli", "web", "update", "health")
 
 EPILOG = """subcommand (boleh dihilangkan, default: tui):
   tui             buka TUI layar penuh
   cli             mode teks (tanpa TUI)
   web             jalankan server web (--host/--port/--token/--no-auth)
   update          update ke versi terbaru dari GitHub (--check = cek saja)
+  health          cek ffmpeg, folder .Shared, dan izin + perintah perbaikan
 
 contoh:
   vnswap
@@ -404,7 +434,11 @@ def main(argv: list[str] | None = None) -> int:
     if mode == "update":
         return run_update(check_only=args.check)
 
+    if mode == "health":
+        return run_health(STATE.shared_dir, STATE.media_dirs)
+
     if mode == "web":
+        print_health_issues(STATE.shared_dir, STATE.media_dirs)
         import vnswap_web
         token, generated = vnswap_web.resolve_token(
             args.host, args.token, args.no_auth)
@@ -436,6 +470,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if mode == "cli":
+        print_health_issues(STATE.shared_dir, STATE.media_dirs)
         return run_cli(STATE)
 
     try:

@@ -6,6 +6,17 @@ penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Ditambahkan
+
+- Pemeriksaan kesehatan awal: `vnswap_core.check_health()` memverifikasi
+  ffmpeg, folder `.Shared` (ada/baca/tulis), izin penyimpanan Termux,
+  target voice-note, folder media, Textual, dan Python — masing-masing
+  dengan perintah perbaikan siap salin-tempel.
+- Subcommand baru `vnswap health` mencetak laporan lengkap (kode kembali
+  1 bila ada yang gagal); CLI dan web mencetak ringkasan masalah saat
+  startup; TUI menampilkan banner peringatan di layar Target; web
+  menampilkan banner di atas wizard via `checks` baru di `/api/health`.
+
 ## [1.7.1] — 2026-10-09
 
 ### Diperbaiki

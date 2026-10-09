@@ -424,6 +424,7 @@ class TargetScreen(Screen):
             "Paling baru sudah dipilih. Up/Down pindah, Enter lanjut.",
             id="subtitle",
         )
+        yield Static("", id="health", classes="card-warn")
         yield DataTable(id="targets", zebra_stripes=True, cursor_type="row")
         yield Static("", id="empty", classes="card")
         yield Label("[Enter] Lanjut   [R] Pindai Ulang   [Up/Down] Pilih   [Esc] Keluar", id="hint")
@@ -448,6 +449,30 @@ class TargetScreen(Screen):
         state = get_app_state()
         table = self.query_one("#targets", DataTable)
         empty = self.query_one("#empty", Static)
+        try:
+            health = self.query_one("#health", Static)
+        except Exception:
+            health = None
+        if health is not None:
+            try:
+                checks = core.check_health(state.shared_dir)
+                critical = [c for c in checks if not c.ok and c.id in (
+                    "ffmpeg", "shared_exists", "shared_read",
+                    "shared_write", "storage", "targets",
+                )]
+                if critical:
+                    lines = ["[!!] Pemeriksaan kesehatan:"]
+                    for c in critical[:4]:
+                        lines.append(f"[XX] {c.label}: {c.detail}")
+                        if c.fix:
+                            lines.append(f"     Perbaiki: {c.fix}")
+                    lines.append("Detail: jalankan `vnswap health` di terminal.")
+                    health.update("\n".join(lines))
+                    health.display = True
+                else:
+                    health.display = False
+            except Exception:
+                health.display = False
         table.clear()
         state.targets = core.detect_targets(state.shared_dir)
         if not state.targets:

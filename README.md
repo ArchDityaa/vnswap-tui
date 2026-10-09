@@ -230,7 +230,7 @@ Langkah berikutnya yang direncanakan — dikelompokkan berdasarkan tujuan. Kontr
 
 - [ ] Toggle bahasa Indonesia/Inggris (UI saat ini hanya Bahasa Indonesia) untuk TUI, CLI, dan web
 - [x] Pratinjau audio di browser: putar sumber yang diunggah dan `.opus` target saat ini sebelum konfirmasi
-- [ ] Pemeriksaan kesehatan awal: verifikasi ffmpeg, direktori shared, dan izin penyimpanan di awal dengan perintah perbaikan siap salin-tempel
+- [x] Pemeriksaan kesehatan awal: verifikasi ffmpeg, direktori shared, dan izin penyimpanan di awal dengan perintah perbaikan siap salin-tempel (`vnswap health`, banner TUI, banner web, ringkasan CLI/web)
 - [ ] Alur keyboard penuh di UI web (pilihan tombol panah, `Enter` untuk lanjut, `R` untuk pindai ulang), sama seperti TUI
 - [ ] Shortcut widget Termux untuk meluncurkan TUI atau server web sekali ketuk
 

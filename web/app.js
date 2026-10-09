@@ -72,10 +72,28 @@ async function refreshHealth() {
     if (!h.shared_exists) $("shared-card").open = true;
     $("shared-hint").textContent = h.shared_exists ? "" : "[!!] folder tidak ada";
     const ok = h.ffmpeg_ok && h.shared_exists;
-    $("health-dot").className = "dot " + (h.ffmpeg_ok ? "ok" : "bad");
+    $("health-dot").className = "dot " + (ok ? "ok" : "bad");
     $("health-text").textContent =
       (h.ffmpeg_ok ? "[OK] ffmpeg" : "[XX] ffmpeg hilang") +
       " · " + h.targets + " target · " + h.sources + " sumber";
+    // Banner kesehatan awal: daftar cek gagal + perintah perbaikan.
+    const hb = $("health-banner");
+    const failed = (h.checks || []).filter((c) => !c.ok);
+    if (hb) {
+      if (!failed.length) {
+        hb.classList.add("hidden");
+        hb.textContent = "";
+      } else {
+        const lines = ["[!!] Pemeriksaan kesehatan:"];
+        failed.slice(0, 5).forEach((c) => {
+          lines.push("[XX] " + c.label + ": " + c.detail);
+          if (c.fix) lines.push("     Perbaiki: " + c.fix);
+        });
+        lines.push("Detail: jalankan `vnswap health` di Termux.");
+        hb.textContent = lines.join("\n");
+        hb.classList.remove("hidden");
+      }
+    }
   } catch (e) {
     $("health-dot").className = "dot bad";
     $("health-text").textContent = "[XX] " + (e.message || "server tidak merespons");

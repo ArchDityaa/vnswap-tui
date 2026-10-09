@@ -642,6 +642,15 @@ class Handler(BaseHTTPRequestHandler):
                     "shared_dir": str(shared),
                     "shared_exists": shared.is_dir(),
                 }, 500)
+            try:
+                checks = core.check_health(
+                    shared, SERVER_CONFIG.get("media_dirs", []))
+                checks_payload = [{
+                    "id": c.id, "label": c.label, "ok": c.ok,
+                    "detail": c.detail, "fix": c.fix,
+                } for c in checks]
+            except Exception:
+                checks_payload = []
             return _send_json(self, {
                 "version": core.VERSION,
                 "auth": bool(SERVER_CONFIG.get("token")),
@@ -652,6 +661,8 @@ class Handler(BaseHTTPRequestHandler):
                 "shared_exists": shared.is_dir(),
                 "targets": n_targets,
                 "sources": n_sources,
+                "checks": checks_payload,
+                "failed": sum(1 for c in checks_payload if not c["ok"]),
             })
         if path == "/api/targets":
             shared: Path = SERVER_CONFIG["shared_dir"]
