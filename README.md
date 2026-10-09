@@ -69,7 +69,7 @@ termux-setup-storage
 Lalu clone repositori ini:
 
 ```bash
-gh repo clone ArchDityaa/vnswap-tui
+git clone https://github.com/ArchDityaa/vnswap-tui.git
 cd vnswap-tui
 ```
 
