@@ -137,6 +137,7 @@ Notes:
 | `web/styles.css` | Dark Pro theme for the web (same tokens as the TUI) |
 | `web/app.js` | Web client (fetch + polling, waveform canvas, upload, rollback) |
 | `tests/test_core.py` | `pytest` suite for `vnswap_core` (no ffmpeg/Textual needed) |
+| `tests/test_web.py` | Live-server tests: health, preview, audio/Range, token gating |
 | `.github/workflows/ci.yml` | CI: byte-compile + pytest on Python 3.10–3.13 |
 
 ## Web interface
@@ -150,7 +151,8 @@ python vnswap.py --web
 
 Feature parity with the TUI: target auto-detect + rescan + filter, source
 auto-discover + filter + drag-drop upload + manual server path, confirm cards
-with waveform preview + preview/write toggle + mono/stereo recipe + oversize
+with dual waveform preview (target vs computed source bars) + audio players
+for both files + preview/write toggle + mono/stereo recipe + oversize
 warning, then live process view (4 stages, progress bar, log, result card,
 rollback). No third-party packages — `vnswap_web.py` uses only the stdlib and
 reuses `vnswap_core` for encode/sidecar/swap, so behavior matches the TUI
@@ -187,7 +189,7 @@ Planned next steps — grouped by goal. Contributions welcome against any item.
 
 - [ ] Batch queue: swap several target/source pairs in one run (web job queue exists — surface it in the UI, TUI, and CLI)
 - [ ] Trim control: set start/end or max duration before encode (`ffmpeg -ss/-t`), with duration-aware sidecar sizing
-- [ ] Source waveform preview: compute the replacement bars *before* swapping (new `/api/preview` endpoint) and draw target-vs-source side by side on the Confirm step
+- [x] Source waveform preview: compute the replacement bars *before* swapping (new `/api/preview` endpoint) and draw target-vs-source side by side on the Confirm step
 - [ ] Duration check, not just size: warn when source audio is much longer than the target VN, not only when the file is large
 - [ ] Live progress over Server-Sent Events instead of polling in the web client
 - [ ] Backup manager: list, restore, and prune accumulated `.bak-timestamp` files from `.Shared`
@@ -196,7 +198,7 @@ Planned next steps — grouped by goal. Contributions welcome against any item.
 ### More user-friendly
 
 - [ ] Indonesian/English language toggle (UI is Indonesian-only today) across TUI, CLI, and web
-- [ ] In-browser audio preview: play the uploaded source and the current target `.opus` before confirming
+- [x] In-browser audio preview: play the uploaded source and the current target `.opus` before confirming
 - [ ] First-run health check: verify ffmpeg, shared dir, and storage permission up front with copy-paste fix commands
 - [ ] Full keyboard flow in the web UI (arrow-key selection, `Enter` to advance, `R` to rescan), matching the TUI
 - [ ] Termux widget shortcut for one-tap launch of the TUI or web server

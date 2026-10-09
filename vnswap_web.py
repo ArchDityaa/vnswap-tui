@@ -453,6 +453,65 @@ def _save_multipart(handler: BaseHTTPRequestHandler) -> dict | None:
             "size_str": fmt_size(len(payload))}
 
 
+_AUDIO_MIME = {
+    "opus": "audio/ogg", "ogg": "audio/ogg", "oga": "audio/ogg",
+    "mp3": "audio/mpeg", "m4a": "audio/mp4", "aac": "audio/aac",
+    "wav": "audio/wav", "flac": "audio/flac", "weba": "audio/webm",
+    "webm": "video/webm", "mp4": "video/mp4", "m4v": "video/mp4",
+    "mov": "video/quicktime", "mkv": "video/x-matroska", "3gp": "video/3gpp",
+}
+
+_MAX_AUDIO_BYTES = 300 * 1024 * 1024
+
+
+def _serve_media(handler: BaseHTTPRequestHandler, path: Path) -> None:
+    """Serve a local audio/video file with HTTP Range support for players."""
+    try:
+        total = path.stat().st_size
+    except OSError:
+        _send_json(handler, {"error": "file tidak ada"}, 404)
+        return
+    if total > _MAX_AUDIO_BYTES:
+        _send_json(handler, {"error": "file terlalu besar untuk preview"}, 413)
+        return
+    ctype = _AUDIO_MIME.get(path.suffix.lower().lstrip("."),
+                            "application/octet-stream")
+    start, end, status = 0, total - 1, 200
+    range_h = handler.headers.get("Range", "")
+    if range_h.startswith("bytes=") and total > 0:
+        spec = range_h[6:].split("-", 1)
+        try:
+            if spec[0]:
+                start = int(spec[0])
+                end = int(spec[1]) if len(spec) > 1 and spec[1] else total - 1
+            elif len(spec) > 1 and spec[1]:
+                start = max(0, total - int(spec[1]))
+            end = min(end, total - 1)
+            if start > end or start >= total:
+                raise ValueError
+            status = 206
+        except ValueError:
+            handler.send_response(416)
+            handler.send_header("Content-Range", f"bytes */{total}")
+            handler.end_headers()
+            return
+    try:
+        with open(path, "rb") as fh:
+            fh.seek(start)
+            body = fh.read(end - start + 1)
+    except OSError as exc:
+        _send_json(handler, {"error": str(exc)}, 400)
+        return
+    handler.send_response(status)
+    handler.send_header("Content-Type", ctype)
+    handler.send_header("Content-Length", str(len(body)))
+    handler.send_header("Accept-Ranges", "bytes")
+    if status == 206:
+        handler.send_header("Content-Range", f"bytes {start}-{end}/{total}")
+    handler.end_headers()
+    handler.wfile.write(body)
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "vnswap-web/1.0"
 
@@ -563,6 +622,51 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError as exc:
                 return _send_json(self, {"error": str(exc)}, 400)
             return _send_json(self, {"length": length, "bars": list(raw)})
+        if path == "/api/preview":
+            treq = qs.get("target", [None])[0]
+            sreq = qs.get("source", [None])[0]
+            if not treq or not sreq:
+                return _send_json(self, {
+                    "error": "target dan source wajib diisi"}, 400)
+            tpath, spath = Path(treq), Path(sreq)
+            if not tpath.is_file() or not spath.is_file():
+                return _send_json(self, {"error": "file tidak ada"}, 404)
+            try:
+                raw = tpath.read_bytes()
+                length, _ = core.parse_target_visualization_data(
+                    raw, tpath.name)
+            except (OSError, ValueError) as exc:
+                return _send_json(self, {
+                    "error": f"target tidak valid: {exc}"}, 400)
+            ffmpeg = core.find_ffmpeg()
+            if not ffmpeg:
+                return _send_json(self, {
+                    "error": "ffmpeg tidak ditemukan"}, 503)
+            try:
+                samples, duration = core.decode_pcm_mono(ffmpeg, spath)
+            except Exception as exc:
+                return _send_json(self, {
+                    "error": f"sumber tidak bisa dibaca: {exc}"}, 400)
+            bars = core.compute_vis_from_samples(samples, 48000,
+                                                 duration or 1.0)
+            sized = (bars if len(bars) == length
+                     else core.resample_bars(bars, length))
+            return _send_json(self, {
+                "target_length": length,
+                "target_bars": list(raw),
+                "source_duration": duration,
+                "source_duration_str": fmt_dur(duration),
+                "source_bars_raw": len(bars),
+                "source_bars": [max(0, min(100, round(v))) for v in sized],
+            })
+        if path == "/api/audio":
+            req = qs.get("path", [None])[0]
+            if not req:
+                return _send_json(self, {"error": "path required"}, 400)
+            p = Path(req)
+            if not p.is_file():
+                return _send_json(self, {"error": "file tidak ada"}, 404)
+            return _serve_media(self, p)
         if path == "/api/plan":
             try:
                 ch = int(qs.get("channels", ["1"])[0])

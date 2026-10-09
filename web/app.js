@@ -15,6 +15,12 @@ const TOKEN = (() => {
   try { return sessionStorage.getItem("vnswap-token") || ""; } catch (e) { return ""; }
 })();
 
+function fileUrl(endpoint, filePath) {
+  const q = new URLSearchParams({ path: filePath });
+  if (TOKEN) q.set("token", TOKEN);
+  return endpoint + "?" + q.toString();
+}
+
 async function api(path, opts) {
   if (TOKEN && path.startsWith("/api/")) {
     path += (path.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(TOKEN);
@@ -180,8 +186,8 @@ async function uploadFile(f) {
 }
 
 /* ---- step 3: confirm ---- */
-function drawWave(bars) {
-  const cv = $("wave");
+function drawWave(bars, id) {
+  const cv = $(id || "wave");
   const ctx = cv.getContext("2d");
   const W = cv.width, H = cv.height;
   ctx.clearRect(0, 0, W, H);
@@ -222,6 +228,31 @@ async function refreshConfirm() {
     } catch (e) {
       $("wave-ascii").textContent = "pola tidak terbaca: " + e.message;
     }
+  }
+  // source preview vs target + audio players
+  const sp = state.sourcePath;
+  const topus = t && t.opus_path;
+  $("aud-target").src = topus ? fileUrl("/api/audio", topus) : "";
+  $("aud-target").style.display = topus ? "" : "none";
+  const sext = ((sp.split(".").pop()) || "").toLowerCase();
+  const isVid = ["mp4", "m4v", "mov", "mkv", "3gp", "webm"].includes(sext);
+  $("aud-source").classList.toggle("hidden", !sp || isVid);
+  $("vid-source").classList.toggle("hidden", !sp || !isVid);
+  if (sp) ((isVid ? $("vid-source") : $("aud-source"))).src = fileUrl("/api/audio", sp);
+  if (t && sp) {
+    try {
+      const pv = await api("/api/preview?target=" + encodeURIComponent(t.path) +
+        "&source=" + encodeURIComponent(sp));
+      drawWave(pv.source_bars, "wave-src");
+      $("preview-info").textContent = "Sumber: " + pv.source_bars_raw + " bars (" +
+        pv.source_duration_str + ") -> " + pv.target_length + " bars target.";
+    } catch (e) {
+      drawWave([], "wave-src");
+      $("preview-info").textContent = "preview sumber: " + e.message;
+    }
+  } else {
+    drawWave([], "wave-src");
+    $("preview-info").textContent = "";
   }
   const plan = await api("/api/plan?channels=" + state.channels).catch(() => null);
   const recipe = plan ? ("opus " + plan.bitrate + " " + plan.application + " " + plan.label) : "opus";

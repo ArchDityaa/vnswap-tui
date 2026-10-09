@@ -92,9 +92,21 @@
       <div class="mini-card" id="confirm-source">SUMBER<br>—</div>
     </div>
     <div class="wave-wrap">
-      <div class="wave-title">Pola visualisasi target</div>
+      <div class="wave-title">Target (saat ini)</div>
       <canvas id="wave" width="640" height="96"></canvas>
+      <div class="wave-title">Sumber (hasil preview, disesuaikan ke panjang target)</div>
+      <canvas id="wave-src" width="640" height="96"></canvas>
       <div class="wave-ascii" id="wave-ascii"></div>
+      <div class="wave-ascii" id="preview-info"></div>
+    </div>
+    <div class="audio-row">
+      <label>Dengar target (saat ini)
+        <audio id="aud-target" controls preload="none"></audio>
+      </label>
+      <label>Dengar sumber (pengganti)
+        <audio id="aud-source" controls preload="none"></audio>
+        <video id="vid-source" class="hidden" controls preload="none"></video>
+      </label>
     </div>
     <div class="opts">
       <fieldset>

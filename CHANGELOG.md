@@ -6,6 +6,19 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-10-09
+
+### Added
+
+- Source waveform preview: `GET /api/preview` decodes the source and returns
+  its bars resampled to the target length; the Confirm step draws target and
+  source canvases side by side with a bar-count/duration summary.
+- In-browser audio preview: `GET /api/audio` serves target `.opus` and source
+  files with HTTP Range support; the Confirm step has players for both
+  (`<video>` is used automatically for video sources).
+- `tests/test_web.py`: live-server tests for health, audio (full/range/404),
+  preview validation and computation, and token gating.
+
 ## [1.2.0] — Professional pack
 
 ### Added
