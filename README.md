@@ -240,7 +240,7 @@ Langkah berikutnya yang direncanakan — dikelompokkan berdasarkan tujuan. Kontr
 - [x] `requirements.txt` / `pyproject.toml` dengan rentang `textual` yang dipin, plus flag `--version` dan `CHANGELOG.md`
 - [x] Suite `pytest` untuk `vnswap_core` (hanya-stdlib by design, jadi berjalan di mana saja) dengan CI GitHub Actions setiap push
 - [x] Token auth untuk mode LAN `--host 0.0.0.0` di server web (dibuat otomatis kecuali `--token`/`--no-auth`)
-- [x] Panduan kontribusi dan template issue; rilis bertag (`v1.0.0`, `v1.1.0`, `v1.2.0`)
+- [x] Panduan kontribusi dan template issue; rilis bertag (`v1.0.0`–`v1.6.0`)
 
 ## Lisensi
 
