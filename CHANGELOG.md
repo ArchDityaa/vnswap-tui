@@ -6,6 +6,8 @@ penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.8.0] — 2026-10-09
+
 ### Ditambahkan
 
 - Pemeriksaan kesehatan awal: `vnswap_core.check_health()` memverifikasi
