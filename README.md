@@ -1,10 +1,18 @@
 # vnswap-tui
 
-[![CI](https://github.com/ArchDityaa/vnswap-tui/actions/workflows/ci.yml/badge.svg)](https://github.com/ArchDityaa/vnswap-tui/actions)
-[![Rilis](https://img.shields.io/github/v/release/ArchDityaa/vnswap-tui)](https://github.com/ArchDityaa/vnswap-tui/releases)
-[![Lisensi](https://img.shields.io/github/license/ArchDityaa/vnswap-tui)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
-[![Platform](https://img.shields.io/badge/platform-Termux%20%7C%20Android-3DDC84)](https://termux.dev/)
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=24,26,36,203,166,247&height=180&section=header&text=vnswap-tui&fontSize=64&fontColor=CDD6F4&animation=fadeIn" width="100%" />
+
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=CBA6F7&center=true&width=600&lines=Tukar+voice+note+langsung+dari+Termux;TUI+%2B+CLI+%2B+Web+PWA;100%25+di+perangkat+%E2%80%94+tanpa+unggah" alt="Tagline" />
+</p>
+
+<p align="center">
+<a href="https://github.com/ArchDityaa/vnswap-tui/actions"><img src="https://github.com/ArchDityaa/vnswap-tui/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+<a href="https://github.com/ArchDityaa/vnswap-tui/releases"><img src="https://img.shields.io/github/v/release/ArchDityaa/vnswap-tui" alt="Rilis" /></a>
+<a href="LICENSE"><img src="https://img.shields.io/github/license/ArchDityaa/vnswap-tui" alt="Lisensi" /></a>
+<img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python" />
+<a href="https://termux.dev/"><img src="https://img.shields.io/badge/platform-Termux%20%7C%20Android-3DDC84" alt="Platform" /></a>
+</p>
 
 Tukar voice note WhatsApp langsung dari Termux. Sepenuhnya di perangkat — tanpa situs web, tanpa unggah.
 
@@ -14,6 +22,7 @@ Tiga antarmuka, satu mesin: **TUI** layar penuh (Textual), **CLI** mode teks, da
 
 - [Mulai Cepat](#mulai-cepat)
 - [Tangkapan Layar](#tangkapan-layar)
+- [Teknologi](#teknologi)
 - [Mengapa vnswap](#mengapa-vnswap)
 - [Fitur](#fitur)
 - [Arsitektur](#arsitektur)
@@ -28,6 +37,7 @@ Tiga antarmuka, satu mesin: **TUI** layar penuh (Textual), **CLI** mode teks, da
 - [Privasi & Ketentuan](#privasi--ketentuan)
 - [Pemecahan Masalah](#pemecahan-masalah)
 - [Roadmap](#roadmap)
+- [Kontributor](#kontributor)
 - [Berkontribusi](#berkontribusi)
 - [Lisensi](#lisensi)
 
@@ -56,6 +66,19 @@ vnswap health
 Banner pemeriksaan kesehatan di web — setiap masalah disertai perintah perbaikan + tombol **Salin**:
 
 ![Banner pemeriksaan kesehatan web](docs/screenshot-health.png)
+
+## Teknologi
+
+<p>
+<img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python" />
+<img src="https://img.shields.io/badge/TUI-Textual_8-34D399?logo=terminal&logoColor=white" alt="Textual" />
+<img src="https://img.shields.io/badge-audio-ffmpeg-007808?logoColor=white" alt="ffmpeg" />
+<img src="https://img.shields.io/badge/Web-HTML5-E34F26?logo=html5&logoColor=white" alt="HTML5" />
+<img src="https://img.shields.io/badge/Web-CSS3-1572B6?logo=css3&logoColor=white" alt="CSS3" />
+<img src="https://img.shields.io/badge/Web-JS-F7DF1E?logo=javascript&logoColor=black" alt="JavaScript" />
+<img src="https://img.shields.io/badge/test-pytest-0A9EDC?logo=pytest&logoColor=white" alt="pytest" />
+<img src="https://img.shields.io/badge/PWA-standalone-CBA6F7?logo=pwa&logoColor=white" alt="PWA" />
+</p>
 
 ## Mengapa vnswap
 
@@ -310,6 +333,10 @@ Langkah berikutnya yang direncanakan — dikelompokkan berdasarkan tujuan. Kontr
 - [x] Token auth untuk mode LAN `--host 0.0.0.0` di server web (dibuat otomatis kecuali `--token`/`--no-auth`)
 - [x] Panduan kontribusi dan template issue; rilis bertag (`v1.0.0`–`v1.6.0`)
 
+## Kontributor
+
+<a href="https://github.com/ArchDityaa/vnswap-tui/graphs/contributors"><img src="https://contributors-img.web.app/image?repo=ArchDityaa/vnswap-tui" alt="Kontributor" /></a>
+
 ## Berkontribusi
 
 Lihat [CONTRIBUTING.md](CONTRIBUTING.md) untuk penyiapan, aturan kode (stdlib-only untuk core/web, Bahasa Indonesia, marker ASCII), dan proses rilis. Bug dan ide fitur: buka issue memakai template yang tersedia.
@@ -319,5 +346,7 @@ Lihat [CONTRIBUTING.md](CONTRIBUTING.md) untuk penyiapan, aturan kode (stdlib-on
 MIT — lihat [LICENSE](LICENSE).
 
 ---
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=24,26,36,203,166,247&height=100&section=footer" width="100%" />
 
 Dikembangkan oleh hakiraadityaa.

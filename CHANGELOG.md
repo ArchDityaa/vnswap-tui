@@ -10,6 +10,8 @@ penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
 
 - `PRIVACY.md` (Kebijakan Privasi) dan `TERMS.md` (Ketentuan Penggunaan)
   dalam Bahasa Indonesia, ditautkan dari README bagian "Privasi & Ketentuan".
+- README memakai elemen README Design Kit: wave header/footer capsule-render,
+  tagline typing-SVG, badge teknologi, dan kartu kontributor.
 
 ### Keamanan (LAN)
 
