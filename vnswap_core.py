@@ -1,12 +1,12 @@
-"""Pure conversion logic for vnswap — mirrors the web app 1:1.
+"""Logika konversi murni untuk vnswap — mencerminkan aplikasi web 1:1.
 
-Replicates, in dependency-free Python:
-- lib/ffmpeg.ts  — the WhatsApp Opus recipe + fallback chains, vendor scan
-- lib/waveform.ts — 20 bars/s visualization curve (mean-abs, sqrt, round)
-- lib/package.ts  — template validation, base-name rule, resampling
+Mereplikasi, dalam Python tanpa dependensi:
+- lib/ffmpeg.ts  — resep Opus WhatsApp + rantai fallback, pemindaian vendor
+- lib/waveform.ts — kurva visualisasi 20 batang/detik (mean-abs, sqrt, round)
+- lib/package.ts  — validasi template, aturan nama dasar, resampling
 
-This module imports NOTHING outside the stdlib so it can be unit-tested
-anywhere, including machines without textual/rich/ffmpeg installed.
+Modul ini TIDAK mengimpor apa pun di luar stdlib sehingga bisa diuji unit
+di mana saja, termasuk mesin tanpa textual/rich/ffmpeg terpasang.
 """
 
 from __future__ import annotations
@@ -19,18 +19,18 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Release version — single source of truth (mirrored in pyproject.toml).
-VERSION = "1.4.1"
+# Versi rilis — satu-satunya sumber kebenaran (dicerminkan di pyproject.toml).
+VERSION = "1.5.0"
 
 # --------------------------------------------------------------------------
-# Constants — must match the web app exactly
+# Konstanta — harus sama persis dengan aplikasi web
 # --------------------------------------------------------------------------
 
 # lib/waveform.ts: VISUALIZATION_BARS_PER_SECOND
 VIS_BARS_PER_SECOND = 20
 # lib/package.ts: MAX_TEMPLATE_BYTES
 MAX_TEMPLATE_BYTES = 36000
-# Supported input extensions — mirrors Dropzone SUPPORTED_EXTENSIONS
+# Ekstensi input yang didukung — mencerminkan SUPPORTED_EXTENSIONS milik Dropzone
 SUPPORTED_EXTENSIONS = frozenset(
     {
         "mp3", "m4a", "aac", "wav", "ogg", "oga", "opus", "flac",
@@ -38,14 +38,14 @@ SUPPORTED_EXTENSIONS = frozenset(
     }
 )
 
-# Default WhatsApp voice-note folder on the user's device
+# Folder voice-note WhatsApp bawaan di perangkat pengguna
 DEFAULT_SHARED_DIR = Path(
     "/storage/emulated/999/Android/media/com.whatsapp/WhatsApp"
     "/accounts/1006/.Shared"
 )
 
-# Account/user numbers vary per device, so besides the exact default we
-# glob every sibling variant (not just `999` / `1006`).
+# Nomor akun/pengguna berbeda-beda tiap perangkat, jadi selain bawaan yang persis kami
+# glob setiap varian saudara (bukan hanya `999` / `1006`).
 _SHARED_GLOB_PATTERNS = (
     "storage/emulated/*/Android/media/com.whatsapp/WhatsApp/accounts/*/.Shared",
     "sdcard/Android/media/com.whatsapp/WhatsApp/accounts/*/.Shared",
@@ -53,10 +53,10 @@ _SHARED_GLOB_PATTERNS = (
 
 
 def find_shared_candidates() -> list[Path]:
-    """Existing `.Shared` dirs across known WhatsApp media roots.
+    """Direktori `.Shared` yang ada di seluruh root media WhatsApp yang dikenal.
 
-    Covers `$VNSWAP_SHARED`, the exact default, and every account/user
-    number variant. Symlink duplicates (e.g. `/sdcard`) are collapsed.
+    Mencakup `$VNSWAP_SHARED`, bawaan yang persis, dan setiap varian
+    nomor akun/pengguna. Duplikat symlink (mis. `/sdcard`) digabungkan.
     """
     ordered: list[Path] = []
 
@@ -83,7 +83,7 @@ def find_shared_candidates() -> list[Path]:
 
 
 def count_shared_targets(shared_dir: Path) -> int:
-    """Number of `*Visualization.data` files directly under a `.Shared` dir."""
+    """Jumlah berkas `*Visualization.data` langsung di bawah direktori `.Shared`."""
     if not shared_dir.is_dir():
         return 0
     try:
@@ -94,16 +94,16 @@ def count_shared_targets(shared_dir: Path) -> int:
 
 
 def rank_shared_candidates() -> list[tuple[Path, int]]:
-    """Candidates ordered by voice-note count, most first."""
+    """Kandidat diurutkan berdasarkan jumlah voice-note, terbanyak lebih dulu."""
     ranked = [(p, count_shared_targets(p)) for p in find_shared_candidates()]
     ranked.sort(key=lambda item: item[1], reverse=True)
     return ranked
 
 
 def auto_shared_dir(explicit: Path | None = None) -> Path:
-    """Pick the best `.Shared` dir: the explicit one when it exists, else
-    the candidate with the most voice notes, else the default (or the
-    missing explicit path) so errors still show a concrete path."""
+    """Pilih direktori `.Shared` terbaik: yang eksplisit bila ada, kalau tidak
+    kandidat dengan voice-note terbanyak, kalau tidak bawaan (atau
+    path eksplisit yang hilang) agar error tetap menampilkan path yang konkret."""
     if explicit is not None and explicit.is_dir():
         return explicit
     ranked = rank_shared_candidates()
@@ -115,12 +115,12 @@ _OPUS_TAGS_MAGIC = b"OpusTags"
 _MAX_VENDOR_LENGTH = 256  # lib/ffmpeg.ts: MAX_VENDOR_LENGTH
 
 # --------------------------------------------------------------------------
-# Target detection
+# Deteksi target
 # --------------------------------------------------------------------------
 
 @dataclass
 class VoiceNoteTarget:
-    """A detected `*Visualization.data` + `<base>.opus` pair."""
+    """Pasangan `*Visualization.data` + `<base>.opus` yang terdeteksi."""
 
     data_path: Path
     opus_path: Path | None
@@ -138,17 +138,17 @@ class VoiceNoteTarget:
 
 
 def shorten_middle(name: str, width: int = 28) -> str:
-    """`abcdef...xyz` middle-truncation for 50+ char sidecar names."""
+    """Pemotongan tengah `abcdef...xyz` untuk nama sidecar 50+ karakter."""
     if len(name) <= width or width < 8:
         return name
-    keep = width - 1  # 1 for the ellipsis
+    keep = width - 1  # 1 untuk elipsis
     head = (keep + 1) // 2
     tail = keep - head
     return f"{name[:head]}…{name[-tail:]}"
 
 
 def template_base_name(file_name: str, fallback: str) -> str:
-    """`abc123Visualization.data` -> `abc123`; else strip extension."""
+    """`abc123Visualization.data` -> `abc123`; bila tidak, buang ekstensi."""
     trimmed = file_name.strip()
     match = re.match(r"^(.*)Visualization\.data$", trimmed, re.IGNORECASE)
     if match and match.group(1):
@@ -160,25 +160,25 @@ def template_base_name(file_name: str, fallback: str) -> str:
 def parse_target_visualization_data(
     raw: bytes, file_name: str
 ) -> tuple[int, float]:
-    """Validate sidecar bytes; return (length, approx_duration_sec)."""
+    """Validasi byte sidecar; kembalikan (length, approx_duration_sec)."""
     if len(raw) == 0:
-        raise ValueError("That Visualization.data file is empty.")
+        raise ValueError("Berkas Visualization.data itu kosong.")
     if len(raw) > MAX_TEMPLATE_BYTES:
         raise ValueError(
-            f"That file is {len(raw)} bytes — far larger than any "
-            f"voice-note sidecar (max {MAX_TEMPLATE_BYTES})."
+            f"Berkas itu {len(raw)} byte — jauh lebih besar daripada "
+            f"sidecar voice-note mana pun (maks {MAX_TEMPLATE_BYTES})."
         )
     for i, byte in enumerate(raw):
         if byte > 100:
             raise ValueError(
-                "That file does not look like a Visualization.data sidecar "
-                f"(byte {i} = {byte}, expected 0-100)."
+                "Berkas itu tidak tampak seperti sidecar Visualization.data "
+                f"(byte {i} = {byte}, seharusnya 0-100)."
             )
     return len(raw), len(raw) / VIS_BARS_PER_SECOND
 
 
 def detect_targets(shared_dir: Path) -> list[VoiceNoteTarget]:
-    """Scan `.Shared/` (recursive) for `*Visualization.data` files."""
+    """Pindai `.Shared/` (rekursif) untuk berkas `*Visualization.data`."""
     if not shared_dir.is_dir():
         return []
     found: list[VoiceNoteTarget] = []
@@ -212,16 +212,16 @@ def detect_targets(shared_dir: Path) -> list[VoiceNoteTarget]:
 
 
 # --------------------------------------------------------------------------
-# Source discovery
+# Penemuan sumber
 # --------------------------------------------------------------------------
 
 def is_supported_source(path: Path) -> bool:
-    """Extension check mirroring Dropzone's fallback rule."""
+    """Pemeriksaan ekstensi yang mencerminkan aturan fallback milik Dropzone."""
     return path.suffix.lower().lstrip(".") in SUPPORTED_EXTENSIONS
 
 
 def discover_sources(dirs: list[Path], limit: int = 30) -> list[Path]:
-    """Newest supported audio/video files across media folders."""
+    """Berkas audio/video terbaru yang didukung di seluruh folder media."""
     files: list[Path] = []
     for folder in dirs:
         if not folder.is_dir():
@@ -241,7 +241,7 @@ def discover_sources(dirs: list[Path], limit: int = 30) -> list[Path]:
     return files[:limit]
 
 # --------------------------------------------------------------------------
-# FFmpeg recipe — mirrors lib/ffmpeg.ts buildCommandArgs exactly
+# Resep FFmpeg — mencerminkan buildCommandArgs milik lib/ffmpeg.ts secara persis
 # --------------------------------------------------------------------------
 
 @dataclass
@@ -254,7 +254,7 @@ class EncodePlan:
 
 
 def build_encode_plan(channels: int = 1) -> EncodePlan:
-    """Argv chains identical to the web app's buildCommandArgs."""
+    """Rantai argv yang identik dengan buildCommandArgs milik aplikasi web."""
     if channels == 2:
         return EncodePlan(
             args_list=[
@@ -288,7 +288,7 @@ def build_encode_plan(channels: int = 1) -> EncodePlan:
 
 
 def read_opus_vendor(raw: bytes) -> str | None:
-    """Scan for the OpusTags vendor string — mirrors readOpusVendor."""
+    """Pindai string vendor OpusTags — mencerminkan readOpusVendor."""
     magic = _OPUS_TAGS_MAGIC
     for offset in range(len(raw) - 12):
         if raw[offset:offset + 8] != magic:
@@ -306,13 +306,13 @@ def read_opus_vendor(raw: bytes) -> str | None:
     return None
 
 # --------------------------------------------------------------------------
-# Visualization curve — mirrors lib/waveform.ts computeVisualizationData
+# Kurva visualisasi — mencerminkan computeVisualizationData milik lib/waveform.ts
 # --------------------------------------------------------------------------
 
 def compute_vis_from_samples(
     samples: list[float], sample_rate: int, duration_sec: float
 ) -> list[int]:
-    """Mean-abs per ~50ms window, loudest-normalised, sqrt curve, 0-100."""
+    """Rata-rata-abs per jendela ~50ms, dinormalisasi ke yang terkeras, kurva sqrt, 0-100."""
     bars = max(1, round(duration_sec * VIS_BARS_PER_SECOND))
     if not samples:
         return [0] * bars
@@ -338,7 +338,7 @@ def compute_vis_from_samples(
 
 
 def resample_bars(source: list[float], target_length: int) -> list[float]:
-    """Linear resample — mirrors lib/waveform.ts resampleBars."""
+    """Resample linear — mencerminkan resampleBars milik lib/waveform.ts."""
     if target_length <= 0:
         return []
     if not source:
@@ -359,7 +359,7 @@ def resample_bars(source: list[float], target_length: int) -> list[float]:
 
 
 def clamp_sidecar(bars: list[float], target_length: int) -> bytes:
-    """Resample (if needed) + clamp to 0-100 bytes."""
+    """Resample (bila perlu) + jepit ke byte 0-100."""
     sized = bars if len(bars) == target_length else resample_bars(
         bars, target_length
     )
@@ -367,7 +367,7 @@ def clamp_sidecar(bars: list[float], target_length: int) -> bytes:
     return bytes(max(0, min(100, round(v))) for v in sized[:capped])
 
 # --------------------------------------------------------------------------
-# Swap — atomic overwrite with backup + rollback
+# Swap — penimpaan atomik dengan backup + rollback
 # --------------------------------------------------------------------------
 
 @dataclass
@@ -386,7 +386,7 @@ def atomic_swap(
     backup_dir: Path | None = None,
     dry_run: bool = True,
 ) -> SwapResult:
-    """Write converted bytes over the target pair, atomically per file."""
+    """Tulis byte hasil konversi menimpa pasangan target, secara atomik per berkas."""
     import time
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -424,7 +424,7 @@ def atomic_swap(
 
 
 def restore_backup(result: SwapResult) -> None:
-    """Roll back an atomic_swap from its `.bak` copies (best effort)."""
+    """Rollback atomic_swap dari salinan `.bak`-nya (upaya terbaik)."""
     for dest, backup in (
         (result.opus_path, result.backup_opus),
         (result.data_path, result.backup_data),
@@ -437,15 +437,15 @@ def restore_backup(result: SwapResult) -> None:
 
 
 # --------------------------------------------------------------------------
-# Runner helpers (ffmpeg discovery, duration probe, pcm decode)
+# Helper runner (penemuan ffmpeg, probe durasi, decode pcm)
 # --------------------------------------------------------------------------
 
 @dataclass
 class RunConfig:
     ffmpeg: str = "ffmpeg"
     channels: int = 1
-    apply: bool = False  # False = dry-run, mirrors the web preview step
-    cancelled: bool = False  # mirrors ConversionSignal { cancelled }
+    apply: bool = False  # False = dry-run, mencerminkan langkah preview web
+    cancelled: bool = False  # mencerminkan ConversionSignal { cancelled }
 
 
 def find_ffmpeg() -> str | None:
@@ -453,7 +453,7 @@ def find_ffmpeg() -> str | None:
 
 
 def probe_duration(ffmpeg: str, source: Path) -> float:
-    """Duration via ffmpeg stderr. No ffprobe needed."""
+    """Durasi via stderr ffmpeg. Tanpa perlu ffprobe."""
     proc = subprocess.run(
         [ffmpeg, "-hide_banner", "-i", str(source)],
         capture_output=True, text=True, timeout=60,
@@ -468,7 +468,7 @@ def probe_duration(ffmpeg: str, source: Path) -> float:
 def decode_pcm_mono(
     ffmpeg: str, source: Path, sample_rate: int = 48000
 ) -> tuple[list[float], float]:
-    """Decode to f32le mono PCM on a pipe — the decodeAudio equivalent."""
+    """Decode ke PCM mono f32le lewat pipe — setara decodeAudio."""
     proc = subprocess.run(
         [ffmpeg, "-hide_banner", "-loglevel", "error",
          "-i", str(source), "-vn", "-ac", "1", "-ar", str(sample_rate),
@@ -477,7 +477,7 @@ def decode_pcm_mono(
     )
     if proc.returncode != 0:
         detail = proc.stderr.decode(errors="replace")[:300]
-        raise RuntimeError(f"Could not decode {source.name}: {detail}")
+        raise RuntimeError(f"Tidak bisa decode {source.name}: {detail}")
     count = len(proc.stdout) // 4
     samples = list(struct.unpack(f"<{count}f", proc.stdout)) if count else []
     duration = len(samples) / sample_rate if sample_rate else 0.0

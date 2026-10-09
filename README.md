@@ -2,60 +2,60 @@
 
 ![CI](https://github.com/ArchDityaa/vnswap-tui/actions/workflows/ci.yml/badge.svg)
 
-Swap WhatsApp voice notes directly from Termux. Fully on-device — no website, no upload.
+Tukar voice note WhatsApp langsung dari Termux. Sepenuhnya di perangkat — tanpa situs web, tanpa unggah.
 
-Built with Python, Textual (dark fullscreen TUI), and ffmpeg.
+Dibangun dengan Python, Textual (TUI gelap layar penuh), dan ffmpeg.
 
-## Quick Start
+## Mulai Cepat
 
-Already cloned, just open the TUI:
+Sudah clone, tinggal buka TUI:
 
 ```bash
 python vnswap.py
 ```
 
-Fresh Termux, copy-paste once — installs dependencies, clones the repo, grants storage access, then opens the TUI:
+Termux baru, cukup salin-tempel sekali — memasang dependensi, meng-clone repo, memberi akses penyimpanan, lalu membuka TUI:
 
 ```bash
 pkg install python ffmpeg git -y && pip install textual && git clone https://github.com/ArchDityaa/vnswap-tui && cd vnswap-tui && termux-setup-storage && python vnswap.py
 ```
 
-## Why vnswap
+## Mengapa vnswap
 
-WhatsApp stores voice notes as paired files (`.opus` audio + `.data` visualization sidecar). vnswap replaces both atomically: it re-encodes any audio/video source into a compatible Opus stream and regenerates the 20 bars/second visualization, so the swapped note plays natively in WhatsApp.
+WhatsApp menyimpan voice note sebagai file berpasangan (audio `.opus` + sidecar visualisasi `.data`). vnswap mengganti keduanya secara atomik: me-re-encode sumber audio/video apa pun menjadi stream Opus yang kompatibel dan membuat ulang visualisasi 20 bar/detik, sehingga note hasil swap diputar secara native di WhatsApp.
 
-Conversion logic mirrors the web implementation:
+Logika konversi mengikuti implementasi web:
 
-- `src/lib/ffmpeg.ts` → `vnswap_core.py` (encode plan)
-- `src/lib/waveform.ts` → 20 bars/second visualization curve
-- `src/lib/package.ts` → base-name pairing rules
+- `src/lib/ffmpeg.ts` → `vnswap_core.py` (rencana encode)
+- `src/lib/waveform.ts` → kurva visualisasi 20 bar/detik
+- `src/lib/package.ts` → aturan pasangan nama dasar
 
-## Features
+## Fitur
 
-- Fullscreen guided wizard (Target → Source → Confirm → Process)
-- Text-mode fallback (`--cli`) when Textual is not installed
-- One-click swap — no typed confirmation required
-- Automatic `.bak-timestamp` backup of both files before writing
-- Atomic write per file via `os.replace`, with automatic + one-click rollback
-- Live progress: encode, sidecar generation, backup, swap
-- Preview (dry-run) mode that simulates the full pipeline without touching files
-- Web UI (`--web`, stdlib-only, no Textual needed): same 4-step wizard in the
-  browser with live progress, waveform canvas preview, drag-drop upload,
-  and one-click rollback
-- Smart defaults: newest target pre-selected, so three `Enter` presses complete a swap
-- Manual path input with file-type validation
-- Termux-safe: ASCII-only status markers (`[OK]`, `[--]`, `[!!]`, `[XX]`), no emoji
+- Wizard terpandu layar penuh (Target → Sumber → Konfirmasi → Proses)
+- Fallback mode teks (`--cli`) saat Textual tidak terpasang
+- Swap sekali klik — tanpa perlu mengetik konfirmasi
+- Backup otomatis `.bak-timestamp` untuk kedua file sebelum menulis
+- Penulisan atomik per file via `os.replace`, dengan rollback otomatis + sekali klik
+- Progres langsung: encode, pembuatan sidecar, backup, swap
+- Mode pratinjau (dry-run) yang mensimulasikan seluruh alur tanpa menyentuh file
+- UI Web (`--web`, hanya-stdlib, tanpa perlu Textual): wizard 4 langkah yang sama di
+  browser dengan progres langsung, pratinjau kanvas waveform, unggah seret-letakkan,
+  dan rollback sekali klik
+- Default cerdas: target terbaru sudah terpilih, jadi tiga kali tekan `Enter` menyelesaikan swap
+- Input path manual dengan validasi tipe file
+- Aman untuk Termux: marker status ASCII saja (`[OK]`, `[--]`, `[!!]`, `[XX]`), tanpa emoji
 
-## Requirements
+## Persyaratan
 
-- Android with Termux
+- Android dengan Termux
 - Python 3.10+
-- ffmpeg (Termux package)
-- Textual 8.x (Python package, for fullscreen TUI only)
+- ffmpeg (paket Termux)
+- Textual 8.x (paket Python, hanya untuk TUI layar penuh)
 
-## Installation
+## Instalasi
 
-Run once in Termux:
+Jalankan sekali di Termux:
 
 ```bash
 pkg install python ffmpeg -y
@@ -63,168 +63,168 @@ pip install textual
 termux-setup-storage
 ```
 
-> `textual` is a Python (PyPI) package — install with `pip`, not `pkg`.
-> `pkg install textual` will always fail with `Unable to locate package`.
+> `textual` adalah paket Python (PyPI) — pasang dengan `pip`, bukan `pkg`.
+> `pkg install textual` akan selalu gagal dengan `Unable to locate package`.
 
-Then clone this repository:
+Lalu clone repositori ini:
 
 ```bash
 gh repo clone ArchDityaa/vnswap-tui
 cd vnswap-tui
 ```
 
-## Usage
+## Penggunaan
 
 ```bash
-python vnswap.py                         # fullscreen TUI (recommended)
-python vnswap.py --cli                   # text mode, no Textual required
-python vnswap.py --web                   # web UI at http://127.0.0.1:8000/
-python vnswap.py --web --port 8080       # custom port (Termux: use --host 0.0.0.0 for LAN)
-python vnswap.py --web --host 0.0.0.0    # LAN mode: token auto-generated, open the printed ?token= URL
-python vnswap.py --web --token RAHASIA   # LAN mode with your own token
-python vnswap.py --dry-run               # preview only, files untouched
+python vnswap.py                         # TUI layar penuh (disarankan)
+python vnswap.py --cli                   # mode teks, tanpa perlu Textual
+python vnswap.py --web                   # UI web di http://127.0.0.1:8000/
+python vnswap.py --web --port 8080       # port kustom (Termux: pakai --host 0.0.0.0 untuk LAN)
+python vnswap.py --web --host 0.0.0.0    # mode LAN: token dibuat otomatis, buka URL ?token= yang tercetak
+python vnswap.py --web --token RAHASIA   # mode LAN dengan token sendiri
+python vnswap.py --dry-run               # hanya pratinjau, file tidak diubah
 python vnswap.py --stereo                # stereo beta (default: mono)
-python vnswap.py --shared /path/.Shared  # custom shared folder
-python vnswap.py --version               # print version
+python vnswap.py --shared /path/.Shared  # folder shared kustom
+python vnswap.py --version               # tampilkan versi
 ```
 
-| Mode | Confirmation | Effect |
+| Mode | Konfirmasi | Efek |
 |------|--------------|--------|
-| Default (TUI / CLI) | `Enter` / `TUKAR SEKARANG` | Writes immediately, `.bak` backup automatic |
-| Preview (`Preview saja` / `--dry-run`) | Same, no write | Full simulation, files untouched |
+| Default (TUI / CLI) | `Enter` / `TUKAR SEKARANG` | Menulis langsung, backup `.bak` otomatis |
+| Pratinjau (`Preview saja` / `--dry-run`) | Sama, tanpa tulis | Simulasi penuh, file tidak diubah |
 
-The legacy `--apply` flag is still accepted but no longer needed — direct write is now the default.
+Flag lama `--apply` masih diterima tetapi sudah tidak diperlukan — tulis langsung kini menjadi default.
 
-## Workflow
+## Alur Kerja
 
 ```text
-STEP 1/3  TARGET    Select the newest Visualization.data (Enter)
-STEP 2/3  SOURCE    Pick audio/video from the list or type a path (Enter)
-STEP 3/3  CONFIRM   Review the summary cards, press TUKAR SEKARANG (Enter)
-PROCESS             Encode → 20 bars/s sidecar → .bak backup → atomic swap
+LANGKAH 1/3  TARGET    Pilih Visualization.data terbaru (Enter)
+LANGKAH 2/3  SUMBER    Pilih audio/video dari daftar atau ketik path (Enter)
+LANGKAH 3/3  CEK       Periksa kartu ringkasan, tekan TUKAR SEKARANG (Enter)
+PROSES                Encode → sidecar 20 bar/detik → backup .bak → tukar atomik
 ```
 
-Keyboard shortcuts:
+Pintasan keyboard:
 
-| Key | Action |
+| Tombol | Aksi |
 |-----|--------|
-| `Enter` | Continue / swap |
-| `R` | Rescan targets |
-| `Esc` | Back |
-| `Up` / `Down` | Move selection |
+| `Enter` | Lanjut / tukar |
+| `R` | Pindai ulang target |
+| `Esc` | Kembali |
+| `Up` / `Down` | Pindahkan pilihan |
 
-Notes:
+Catatan:
 
-- Long filenames are middle-truncated (`abc12...xyz.data`) for readability.
-- Each step defaults to the newest item, so minimal navigation is required.
+- Nama file panjang dipotong di tengah (`abc12...xyz.data`) agar mudah dibaca.
+- Setiap langkah default ke item terbaru, jadi navigasi minimal sudah cukup.
 
-## Safety guarantees
+## Jaminan Keamanan
 
-1. Both files (`.opus` + `.data`) are backed up as `.bak-timestamp` before any write.
-2. Each file is written atomically with `os.replace` — no half-written state.
-3. On failure: automatic restore plus a one-click **Rollback** button on the Process screen.
+1. Kedua file (`.opus` + `.data`) dicadangkan sebagai `.bak-timestamp` sebelum penulisan apa pun.
+2. Setiap file ditulis secara atomik dengan `os.replace` — tanpa status setengah tertulis.
+3. Saat gagal: pemulihan otomatis plus tombol **Rollback** sekali klik pada layar Proses.
 
-## Project structure
+## Struktur Proyek
 
-| File | Contents |
+| File | Isi |
 |------|----------|
-| `vnswap.py` | Entrypoint, app state, CLI fallback, shared pipeline, `--web` launcher |
-| `vnswap_core.py` | Pure logic (stdlib only — testable anywhere): detection, encode plan, visualization, atomic swap |
-| `vnswap_ui_nav.py` | Dark Pro theme + Target / Source / Confirm screens |
-| `vnswap_ui_run.py` | Process screen + asyncio worker (progress, log, result) |
-| `vnswap_web.py` | Web server (stdlib-only `http.server` + JSON API + background jobs, token auth for LAN) |
-| `web/index.html` | Web wizard markup (Target → Source → Confirm → Process) |
-| `web/styles.css` | Catppuccin Mocha theme for the web (TUI keeps Dark Pro) |
-| `web/app.js` | Web client (fetch + polling, waveform canvas, upload, rollback) |
-| `tests/test_core.py` | `pytest` suite for `vnswap_core` (no ffmpeg/Textual needed) |
-| `tests/test_web.py` | Live-server tests: health, preview, audio/Range, token gating |
-| `.github/workflows/ci.yml` | CI: byte-compile + pytest on Python 3.10–3.13 |
+| `vnswap.py` | Entrypoint, status aplikasi, fallback CLI, pipeline bersama, peluncur `--web` |
+| `vnswap_core.py` | Logika murni (hanya stdlib — bisa diuji di mana saja): deteksi, rencana encode, visualisasi, swap atomik |
+| `vnswap_ui_nav.py` | Tema Dark Pro + layar Target / Sumber / Konfirmasi |
+| `vnswap_ui_run.py` | Layar Proses + worker asyncio (progres, log, hasil) |
+| `vnswap_web.py` | Server web (`http.server` hanya-stdlib + JSON API + background jobs, token auth untuk LAN) |
+| `web/index.html` | Markup wizard web (Target → Sumber → Konfirmasi → Proses) |
+| `web/styles.css` | Tema Catppuccin Mocha untuk web (TUI tetap Dark Pro) |
+| `web/app.js` | Klien web (fetch + polling, kanvas waveform, unggah, rollback) |
+| `tests/test_core.py` | Suite `pytest` untuk `vnswap_core` (tanpa perlu ffmpeg/Textual) |
+| `tests/test_web.py` | Tes live-server: health, preview, audio/Range, token gating |
+| `.github/workflows/ci.yml` | CI: byte-compile + pytest pada Python 3.10–3.13 |
 
-## Web interface
+## Antarmuka Web
 
-For users who prefer not to use the terminal UI:
+Bagi pengguna yang tidak ingin memakai UI terminal:
 
 ```bash
 python vnswap.py --web
-# open http://127.0.0.1:8000/ in the browser
+# buka http://127.0.0.1:8000/ di browser
 ```
 
-Feature parity with the TUI: target auto-detect + rescan + filter, source
-auto-discover + filter + drag-drop upload + manual server path, confirm cards
-with dual waveform preview (target vs computed source bars) + audio players
-for both files + preview/write toggle + mono/stereo recipe + oversize
-warning, then live process view (4 stages, progress bar, log, result card,
-rollback). No third-party packages — `vnswap_web.py` uses only the stdlib and
-reuses `vnswap_core` for encode/sidecar/swap, so behavior matches the TUI
-exactly. On Termux, expose to the LAN with `python vnswap.py --web --host 0.0.0.0`.
+Paritas fitur dengan TUI: deteksi otomatis target + pindai ulang + filter, penemuan
+otomatis sumber + filter + unggah seret-letakkan + path server manual, kartu konfirmasi
+dengan pratinjau waveform ganda (bar target vs bar sumber terhitung) + pemutar audio
+untuk kedua file + toggle pratinjau/tulis + resep mono/stereo + peringatan kelebihan
+ukuran, lalu tampilan proses langsung (4 tahap, progress bar, log, kartu hasil,
+rollback). Tanpa paket pihak ketiga — `vnswap_web.py` hanya memakai stdlib dan
+memakai ulang `vnswap_core` untuk encode/sidecar/swap, sehingga perilakunya sama persis
+dengan TUI. Di Termux, ekspos ke LAN dengan `python vnswap.py --web --host 0.0.0.0`.
 
-### LAN token auth
+### Autentikasi token LAN
 
-Loopback (`127.0.0.1`) needs no auth. Binding a non-loopback host enables
-token auth on all `/api/*` endpoints: a token is auto-generated and printed
-(open the printed `?token=...` URL), `--token RAHASIA` sets your own, and
-`--no-auth` disables it (only for networks you trust).
+Loopback (`127.0.0.1`) tidak perlu auth. Binding host non-loopback mengaktifkan
+token auth pada semua endpoint `/api/*`: token dibuat otomatis dan dicetak
+(buka URL `?token=...` yang tercetak), `--token RAHASIA` mengatur milik Anda
+sendiri, dan `--no-auth` menonaktifkannya (hanya untuk jaringan yang Anda percaya).
 
 ### Deteksi .Shared otomatis
 
-The old hardcoded path (`.../emulated/999/.../accounts/1006/.Shared`) only
-fits one device. The server now probes `$VNSWAP_SHARED`, the default, and
-every account/user number variant, then uses the folder with the most voice
-notes. Precedence: explicit `--shared`, `VNSWAP_SHARED`, auto-detect. The
-dropdown above the wizard lists every candidate with its target count —
-pick one and press Terapkan, or type a path manually.
+Path hardcoded lama (`.../emulated/999/.../accounts/1006/.Shared`) hanya
+cocok untuk satu perangkat. Server kini memindai `$VNSWAP_SHARED`, default, dan
+setiap varian nomor akun/pengguna, lalu memakai folder dengan voice note
+terbanyak. Urutan prioritas: `--shared` eksplisit, `VNSWAP_SHARED`, deteksi otomatis.
+Dropdown di atas wizard menampilkan setiap kandidat beserta jumlah targetnya —
+pilih satu lalu tekan Terapkan, atau ketik path secara manual.
 
-## Supported sources
+## Sumber yang Didukung
 
 Audio: `mp3 m4a aac wav ogg oga opus flac weba`
 Video: `webm mp4 m4v mov mkv 3gp`
 
-Anything ffmpeg can decode is attempted; unsupported extensions warn but still try the encode chain (main + fallbacks).
+Apa pun yang bisa di-decode ffmpeg akan dicoba; ekstensi yang tidak didukung memberi peringatan tetapi tetap mencoba rantai encode (utama + fallback).
 
-## Troubleshooting
+## Pemecahan Masalah
 
-| Symptom | Fix |
+| Gejala | Perbaikan |
 |---------|-----|
 | `ffmpeg tidak ditemukan` | `pkg install ffmpeg -y` |
-| `textual belum terinstall` | `pip install textual`, or use `--cli` |
-| No targets found | Play satu voice note di WhatsApp dulu, lalu `R` (Rescan) di TUI atau tombol Rescan di web |
+| `textual belum terinstall` | `pip install textual`, atau gunakan `--cli` |
+| Tidak ada target ditemukan | Putar satu voice note di WhatsApp dulu, lalu `R` (Pindai Ulang) di TUI atau tombol Pindai Ulang di web |
 | Web kosong padahal TUI ada isi | Buka `http://127.0.0.1:8000/api/diagnostics` di browser HP, lihat `shared_dir`, `shared_exists`, `candidates`, dan `scan_error` — di situlah penyebabnya tercatat. Lalu hard-refresh (`Ctrl+Shift+R`) agar `app.js` terbaru terpakai, dan cek footer: harus tertulis versi terbaru |
-| Encode always fails | Verify the source file opens; try `--dry-run` to isolate |
+| Encode selalu gagal | Pastikan file sumber bisa dibuka; coba `--dry-run` untuk isolasi |
 
 ## Roadmap
 
-Planned next steps — grouped by goal. Contributions welcome against any item.
+Langkah berikutnya yang direncanakan — dikelompokkan berdasarkan tujuan. Kontribusi dipersilakan untuk item mana pun.
 
-### More advanced
+### Lebih canggih
 
-- [ ] Batch queue: swap several target/source pairs in one run (web job queue exists — surface it in the UI, TUI, and CLI)
-- [ ] Trim control: set start/end or max duration before encode (`ffmpeg -ss/-t`), with duration-aware sidecar sizing
-- [x] Source waveform preview: compute the replacement bars *before* swapping (new `/api/preview` endpoint) and draw target-vs-source side by side on the Confirm step
-- [ ] Duration check, not just size: warn when source audio is much longer than the target VN, not only when the file is large
-- [ ] Live progress over Server-Sent Events instead of polling in the web client
-- [ ] Backup manager: list, restore, and prune accumulated `.bak-timestamp` files from `.Shared`
-- [ ] Swap history (JSONL log) with undo-from-history
+- [ ] Antrean batch: tukar beberapa pasangan target/sumber dalam sekali jalan (job queue web sudah ada — tampilkan di UI, TUI, dan CLI)
+- [ ] Kontrol potong: atur awal/akhir atau durasi maksimum sebelum encode (`ffmpeg -ss/-t`), dengan ukuran sidecar yang menyesuaikan durasi
+- [x] Pratinjau waveform sumber: hitung bar pengganti *sebelum* swap (endpoint baru `/api/preview`) dan gambar target-vs-sumber berdampingan pada langkah Konfirmasi
+- [ ] Pemeriksaan durasi, bukan hanya ukuran: beri peringatan saat audio sumber jauh lebih panjang daripada VN target, bukan hanya saat file besar
+- [ ] Progres langsung via Server-Sent Events sebagai pengganti polling di klien web
+- [ ] Manajer backup: daftar, pulihkan, dan rapikan file `.bak-timestamp` yang menumpuk dari `.Shared`
+- [ ] Riwayat swap (log JSONL) dengan batalkan-dari-riwayat
 
-### More user-friendly
+### Lebih ramah pengguna
 
-- [ ] Indonesian/English language toggle (UI is Indonesian-only today) across TUI, CLI, and web
-- [x] In-browser audio preview: play the uploaded source and the current target `.opus` before confirming
-- [ ] First-run health check: verify ffmpeg, shared dir, and storage permission up front with copy-paste fix commands
-- [ ] Full keyboard flow in the web UI (arrow-key selection, `Enter` to advance, `R` to rescan), matching the TUI
-- [ ] Termux widget shortcut for one-tap launch of the TUI or web server
+- [ ] Toggle bahasa Indonesia/Inggris (UI saat ini hanya Bahasa Indonesia) untuk TUI, CLI, dan web
+- [x] Pratinjau audio di browser: putar sumber yang diunggah dan `.opus` target saat ini sebelum konfirmasi
+- [ ] Pemeriksaan kesehatan awal: verifikasi ffmpeg, direktori shared, dan izin penyimpanan di awal dengan perintah perbaikan siap salin-tempel
+- [ ] Alur keyboard penuh di UI web (pilihan tombol panah, `Enter` untuk lanjut, `R` untuk pindai ulang), sama seperti TUI
+- [ ] Shortcut widget Termux untuk meluncurkan TUI atau server web sekali ketuk
 
-### More professional
+### Lebih profesional
 
-- [x] `LICENSE` file (MIT) — was a placeholder, now shipped
-- [x] `requirements.txt` / `pyproject.toml` with a pinned `textual` range, plus a `--version` flag and `CHANGELOG.md`
-- [x] `pytest` suite for `vnswap_core` (stdlib-only by design, so it runs anywhere) with GitHub Actions CI on every push
-- [x] Token auth for `--host 0.0.0.0` LAN mode in the web server (auto-generated unless `--token`/`--no-auth`)
-- [x] Contributing guide and issue templates; tagged releases (`v1.0.0`, `v1.1.0`, `v1.2.0`)
+- [x] File `LICENSE` (MIT) — dulu placeholder, kini sudah tersedia
+- [x] `requirements.txt` / `pyproject.toml` dengan rentang `textual` yang dipin, plus flag `--version` dan `CHANGELOG.md`
+- [x] Suite `pytest` untuk `vnswap_core` (hanya-stdlib by design, jadi berjalan di mana saja) dengan CI GitHub Actions setiap push
+- [x] Token auth untuk mode LAN `--host 0.0.0.0` di server web (dibuat otomatis kecuali `--token`/`--no-auth`)
+- [x] Panduan kontribusi dan template issue; rilis bertag (`v1.0.0`, `v1.1.0`, `v1.2.0`)
 
-## License
+## Lisensi
 
-MIT — see [LICENSE](LICENSE).
+MIT — lihat [LICENSE](LICENSE).
 
 ---
 
-Developed by hakiraadityaa.
+Dikembangkan oleh hakiraadityaa.

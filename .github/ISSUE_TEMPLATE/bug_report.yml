@@ -1,38 +1,38 @@
 ---
-name: Bug report
-description: Something broken in the TUI, CLI, or web UI
+name: Laporan bug
+description: Ada yang rusak di TUI, CLI, atau UI web
 labels: [bug]
 body:
   - type: input
     id: version
     attributes:
-      label: Version (`python vnswap.py --version`)
+      label: Versi (`python vnswap.py --version`)
       placeholder: 1.2.0
     validations:
       required: true
   - type: dropdown
     id: interface
     attributes:
-      label: Interface
+      label: Antarmuka
       options: [TUI, CLI (--cli), Web (--web)]
     validations:
       required: true
   - type: textarea
     id: what
     attributes:
-      label: What happened
-      description: What you did, what you expected, what you got instead
+      label: Apa yang terjadi
+      description: Apa yang Anda lakukan, apa yang Anda harapkan, apa yang terjadi sebenarnya
     validations:
       required: true
   - type: textarea
     id: env
     attributes:
-      label: Environment
-      description: Python version, ffmpeg present or not, Termux or other OS
-      placeholder: python 3.12, ffmpeg yes, Termux on Android 14
+      label: Lingkungan
+      description: Versi Python, ada/tidaknya ffmpeg, Termux atau OS lain
+      placeholder: python 3.12, ffmpeg ada, Termux di Android 14
   - type: textarea
     id: logs
     attributes:
-      label: Logs
-      description: Paste the TUI log lines, terminal output, or web log panel text
+      label: Log
+      description: Tempel baris log TUI, output terminal, atau teks panel log web
       render: text

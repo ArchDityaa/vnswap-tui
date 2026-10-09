@@ -1,14 +1,24 @@
-# Changelog
+# Catatan Perubahan
 
-All notable changes to this project are documented here.
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-versioning follows [Semantic Versioning](https://semver.org/).
+Semua perubahan penting pada proyek ini didokumentasikan di sini.
+Format mengikuti [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-10-09
+
+### Diubah
+
+- Seluruh repo diterjemahkan ke Bahasa Indonesia: string UI TUI/CLI/web
+  (LANGKAH, Pindai Ulang, Durasi, Ukuran, Unggah, "dikembangkan oleh
+  hakiraadityaa"), pesan error `vnswap_core`, komentar dan docstring kode,
+  README, CHANGELOG, CONTRIBUTING, dan template issue. Identifier kode,
+  endpoint API, key JSON, dan marker status tidak berubah.
+
 ## [1.4.1] — 2026-10-09
 
-### Fixed
+### Diperbaiki
 
 - Web tidak menampilkan target padahal TUI bisa: tiga akar masalah di
   lapisan HTTP/JS, bukan di deteksi — (1) error API ditelan diam-diam
@@ -21,9 +31,9 @@ versioning follows [Semantic Versioning](https://semver.org/).
 - File statis (`/`, `/app.js`, `/styles.css`) memakai
   `Cache-Control: no-store` agar update selalu sampai ke browser.
 - `loadTargets()` menampilkan pesan `[XX] gagal memuat target: ...`
-  langsung di tabel; tombol Rescan ikut memuat ulang kandidat.
+  langsung di tabel; tombol Pindai Ulang ikut memuat ulang kandidat.
 
-### Added
+### Ditambahkan
 
 - `GET /api/diagnostics`: platform, cwd, nilai `VNSWAP_SHARED`,
   `shared_dir` terpilih, status ada/tidaknya, semua kandidat +
@@ -35,69 +45,69 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [1.4.0] — 2026-10-09
 
-### Fixed
+### Diperbaiki
 
-- `.Shared` auto-detection: the hardcoded `999`/`1006` path failed on any
-  other device. The server now probes `$VNSWAP_SHARED`, the default, and
-  every account/user number variant, then uses the folder with the most
-  voice notes. `--shared` (or the UI picker) still overrides; a missing
-  explicit path is kept so errors stay visible.
+- Deteksi otomatis `.Shared`: path hardcoded `999`/`1006` gagal di perangkat
+  lain. Server kini memindai `$VNSWAP_SHARED`, default, dan
+  setiap varian nomor akun/pengguna, lalu memakai folder dengan voice
+  note terbanyak. `--shared` (atau pemilih di UI) tetap mengesampingkan;
+  path eksplisit yang hilang tetap disimpan agar error tetap terlihat.
 
-### Added
+### Ditambahkan
 
-- `GET /api/shared-candidates`: ranked `.Shared` folders with target
-  counts; the web UI shows them in a dropdown next to the manual path
-  field, plus `shared_auto` in `/api/health`.
-- Catppuccin Mocha web theme (dark only): mauve accent, green primary
-  action, tinted status banners, roomier cards, larger mobile tap targets.
-  The TUI keeps its Dark Pro theme.
-- `tests/test_shared.py`: auto-detection unit tests; candidates endpoint
-  covered in `tests/test_web.py`.
+- `GET /api/shared-candidates`: folder `.Shared` berperingkat beserta jumlah
+  target; UI web menampilkannya dalam dropdown di samping kolom path manual,
+  serta `shared_auto` di `/api/health`.
+- Tema web Catppuccin Mocha (hanya gelap): aksen mauve, aksi primer hijau,
+  banner status berwarna, kartu lebih lega, target ketuk mobile lebih besar.
+  TUI tetap memakai tema Dark Pro.
+- `tests/test_shared.py`: unit tes deteksi otomatis; endpoint kandidat
+  tercakup di `tests/test_web.py`.
 
 ## [1.3.0] — 2026-10-09
 
-### Added
+### Ditambahkan
 
-- Source waveform preview: `GET /api/preview` decodes the source and returns
-  its bars resampled to the target length; the Confirm step draws target and
-  source canvases side by side with a bar-count/duration summary.
-- In-browser audio preview: `GET /api/audio` serves target `.opus` and source
-  files with HTTP Range support; the Confirm step has players for both
-  (`<video>` is used automatically for video sources).
-- `tests/test_web.py`: live-server tests for health, audio (full/range/404),
-  preview validation and computation, and token gating.
+- Pratinjau waveform sumber: `GET /api/preview` men-decode sumber dan mengembalikan
+  bar-nya yang di-resample ke panjang target; langkah Konfirmasi menggambar kanvas
+  target dan sumber berdampingan beserta ringkasan jumlah bar/durasi.
+- Pratinjau audio di browser: `GET /api/audio` menyajikan `.opus` target dan file
+  sumber dengan dukungan HTTP Range; langkah Konfirmasi memiliki pemutar untuk keduanya
+  (`<video>` dipakai otomatis untuk sumber video).
+- `tests/test_web.py`: tes live-server untuk health, audio (penuh/range/404),
+  validasi dan komputasi preview, serta token gating.
 
-## [1.2.0] — Professional pack
+## [1.2.0] — Paket profesional
 
-### Added
+### Ditambahkan
 
 - `LICENSE` (MIT).
-- `pyproject.toml` + `requirements.txt` with a pinned `textual>=8,<9` range.
-- `--version` flag on `vnswap.py` and `vnswap-web`.
-- `CHANGELOG.md`, `CONTRIBUTING.md`, bug-report and feature-request issue templates.
-- `pytest` suite for `vnswap_core` (`tests/test_core.py`) and GitHub Actions CI on Python 3.10–3.13.
-- Token auth for the web server: auto-generated token when binding a
-  non-loopback `--host` (e.g. `0.0.0.0`), `--token` to set your own,
-  `--no-auth` to opt out explicitly. All `/api/*` endpoints enforce it.
-- `version` and `auth` fields in `GET /api/health`.
+- `pyproject.toml` + `requirements.txt` dengan rentang `textual>=8,<9` yang dipin.
+- Flag `--version` pada `vnswap.py` dan `vnswap-web`.
+- `CHANGELOG.md`, `CONTRIBUTING.md`, template laporan-bug dan permintaan-fitur.
+- Suite `pytest` untuk `vnswap_core` (`tests/test_core.py`) dan CI GitHub Actions pada Python 3.10–3.13.
+- Token auth untuk server web: token dibuat otomatis saat binding
+  `--host` non-loopback (mis. `0.0.0.0`), `--token` untuk mengatur milik sendiri,
+  `--no-auth` untuk keluar secara eksplisit. Semua endpoint `/api/*` menegakkannya.
+- Kolom `version` dan `auth` di `GET /api/health`.
 
-## [1.1.0] — Web interface
+## [1.1.0] — Antarmuka web
 
-### Added
+### Ditambahkan
 
-- Interactive web UI (`python vnswap.py --web`): same 4-step wizard as the TUI
-  (Target → Source → Confirm → Process) with live progress, waveform canvas
-  preview, drag-drop upload, and one-click rollback.
-- `vnswap_web.py`: stdlib-only HTTP server + JSON API; background jobs reuse
-  `vnswap_core` so encode/sidecar/swap behavior matches the TUI exactly.
+- UI web interaktif (`python vnswap.py --web`): wizard 4 langkah yang sama seperti TUI
+  (Target → Sumber → Konfirmasi → Proses) dengan progres langsung, pratinjau kanvas
+  waveform, unggah seret-letakkan, dan rollback sekali klik.
+- `vnswap_web.py`: server HTTP hanya-stdlib + JSON API; job latar memakai ulang
+  `vnswap_core` sehingga perilaku encode/sidecar/swap sama persis dengan TUI.
 
-## [1.0.0] — Initial release
+## [1.0.0] — Rilis awal
 
-### Added
+### Ditambahkan
 
-- Fullscreen Textual TUI wizard (Target → Source → Confirm → Process).
-- `--cli` text-mode fallback when Textual is not installed.
-- WhatsApp Opus encode recipe (mono 32k voip + fallbacks, stereo 64k beta),
-  20 bars/second visualization sidecar, atomic swap with `.bak-timestamp`
-  backup plus automatic and one-click rollback.
-- Preview (dry-run) mode.
+- Wizard TUI Textual layar penuh (Target → Sumber → Konfirmasi → Proses).
+- Fallback mode teks `--cli` saat Textual tidak terpasang.
+- Resep encode Opus WhatsApp (mono 32k voip + fallback, stereo 64k beta),
+  sidecar visualisasi 20 bar/detik, swap atomik dengan backup `.bak-timestamp`
+  serta rollback otomatis dan sekali klik.
+- Mode pratinjau (dry-run).

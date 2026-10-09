@@ -1,4 +1,4 @@
-/* vnswap web client — vanilla JS, no deps. ASCII markers, no emoji. */
+/* Klien web vnswap — vanilla JS, tanpa dependensi. Marker ASCII, tanpa emoji. */
 const $ = (id) => document.getElementById(id);
 const state = {
   targets: [], sources: [],
@@ -8,7 +8,7 @@ const state = {
   shared: "",
 };
 
-/* API token (LAN mode): ?token= in the URL, remembered per tab. */
+/* token API (mode LAN): ?token= di URL, diingat per tab. */
 const TOKEN = (() => {
   const fromUrl = new URLSearchParams(location.search).get("token");
   if (fromUrl) { try { sessionStorage.setItem("vnswap-token", fromUrl); } catch (e) {} return fromUrl; }
@@ -50,7 +50,7 @@ function go(n) {
 document.querySelectorAll('#stepper button').forEach((b) =>
   b.addEventListener("click", () => {
     const s = Number(b.dataset.step);
-    if (s === 4) return; // process only via swap
+    if (s === 4) return; // proses hanya lewat swap
     if (s === 2 && !state.target) return;
     if (s === 3 && (!state.target || !state.sourcePath)) return;
     go(s);
@@ -101,11 +101,11 @@ async function loadCandidates() {
     sel.value = j.selected;
   }
   if (!j.candidates.length) {
-    $("shared-hint").textContent = "[!!] .Shared tidak terdeteksi — putar satu VN di WhatsApp lalu Rescan, atau isi path manual.";
+    $("shared-hint").textContent = "[!!] .Shared tidak terdeteksi — putar satu VN di WhatsApp lalu Pindai Ulang, atau isi path manual.";
   }
 }
 
-/* ---- step 1: targets ---- */
+/* ---- langkah 1: target ---- */
 async function loadTargets() {
   const tb = document.querySelector("#target-table tbody");
   let data;
@@ -129,7 +129,7 @@ async function loadTargets() {
   $("target-empty").classList.toggle("hidden", targets.length > 0);
   if (!targets.length) {
     $("target-empty").textContent =
-      "Belum ada target di folder .Shared\n1. Buka WhatsApp, putar satu voice note\n2. Kembali ke sini, tekan Rescan\nPath: " + state.shared;
+      "Belum ada target di folder .Shared\n1. Buka WhatsApp, putar satu voice note\n2. Kembali ke sini, tekan Pindai Ulang\nPath: " + state.shared;
   }
   rows.slice(0, 50).forEach((t) => {
     const tr = document.createElement("tr");
@@ -148,7 +148,7 @@ async function loadTargets() {
 }
 function paintTargets() { loadTargets().catch(() => {}); }
 
-/* ---- step 2: sources ---- */
+/* ---- langkah 2: sumber ---- */
 async function loadSources() {
   const { sources } = await api("/api/sources");
   state.sources = sources;
@@ -172,7 +172,7 @@ function paintSources() {
     const tr = document.createElement("tr");
     if (state.sourcePath === s.path) tr.className = "sel";
     tr.innerHTML = "<td>" + (state.sourcePath === s.path ? "[x]" : "[ ]") + "</td>" +
-      "<td class='name' title='" + esc(s.path) + "'>" + esc(s.name) + (s.uploaded ? " (upload)" : "") + "</td>" +
+      "<td class='name' title='" + esc(s.path) + "'>" + esc(s.name) + (s.uploaded ? " (unggahan)" : "") + "</td>" +
       "<td>" + esc(s.tag) + "</td><td>" + esc(s.size_str) + "</td>";
     tr.addEventListener("click", () => {
       state.source = s; state.sourcePath = s.path;
@@ -199,14 +199,14 @@ function checkManual() {
   if (!v) { el.textContent = ""; el.className = "manual-status"; return; }
   state.sourcePath = v;
   state.source = { name: v.split(/[\\/]/).pop(), path: v, size_str: "?", tag: "?" };
-  // lightweight existence hint via sources list match
+  // petunjuk ringan lewat kecocokan daftar sumber
   const known = state.sources.find((s) => s.path === v);
   if (known) { el.textContent = "[OK] file ada di daftar sumber"; el.className = "manual-status ok"; }
   else { el.textContent = "[!!] path manual — dicek saat proses berjalan"; el.className = "manual-status warn"; }
   paintSources();
 }
 
-/* upload */
+/* bagian upload */
 async function uploadFile(f) {
   const fd = new FormData();
   fd.append("file", f, f.name);
@@ -226,7 +226,7 @@ async function uploadFile(f) {
   $("manual-status").className = "manual-status ok";
 }
 
-/* ---- step 3: confirm ---- */
+/* ---- langkah 3: cek ---- */
 function drawWave(bars, id) {
   const cv = $(id || "wave");
   const ctx = cv.getContext("2d");
@@ -251,7 +251,7 @@ async function refreshConfirm() {
   $("confirm-source").textContent = sp
     ? ("SUMBER\n" + (state.source ? state.source.name : sp.split(/[\\/]/).pop()) + "\n" + sp)
     : "SUMBER\n--";
-  // waveform
+  // gelombang
   if (t) {
     try {
       const j = await api("/api/bars?path=" + encodeURIComponent(t.path));
@@ -260,7 +260,7 @@ async function refreshConfirm() {
       const vals = j.bars.filter((_, i) => i % Math.max(1, Math.floor(j.bars.length / 40)) === 0).slice(0, 40);
       $("wave-ascii").textContent = "Pola: " + vals.map((v) =>
         glyphs[Math.min(glyphs.length - 1, Math.floor(v * glyphs.length / 101))]).join("");
-      // size heuristic mirrors TUI
+      // heuristik ukuran mencerminkan TUI
       const src = state.sources.find((s) => s.path === sp);
       if (src && t.length > 0 && src.size > t.length * 1024 * 20) {
         $("size-warn").textContent = "[!!] Sumber jauh lebih besar dari target. Audio akan dipadatkan ke sidecar target.";
@@ -270,8 +270,7 @@ async function refreshConfirm() {
       $("wave-ascii").textContent = "pola tidak terbaca: " + e.message;
     }
   }
-  // source preview vs target + audio players
-  const sp = state.sourcePath;
+  // preview sumber vs target + pemutar audio
   const topus = t && t.opus_path;
   $("aud-target").src = topus ? fileUrl("/api/audio", topus) : "";
   $("aud-target").style.display = topus ? "" : "none";
@@ -285,8 +284,8 @@ async function refreshConfirm() {
       const pv = await api("/api/preview?target=" + encodeURIComponent(t.path) +
         "&source=" + encodeURIComponent(sp));
       drawWave(pv.source_bars, "wave-src");
-      $("preview-info").textContent = "Sumber: " + pv.source_bars_raw + " bars (" +
-        pv.source_duration_str + ") -> " + pv.target_length + " bars target.";
+      $("preview-info").textContent = "Sumber: " + pv.source_bars_raw + " bar (" +
+        pv.source_duration_str + ") -> " + pv.target_length + " bar target.";
     } catch (e) {
       drawWave([], "wave-src");
       $("preview-info").textContent = "preview sumber: " + e.message;
@@ -307,7 +306,7 @@ async function refreshConfirm() {
   }
 }
 
-/* ---- step 4: run ---- */
+/* ---- langkah 4: jalan ---- */
 function paintStages(stages) {
   document.querySelectorAll("#stages li").forEach((li) => {
     const s = stages[Number(li.dataset.i)] || "todo";
@@ -350,7 +349,7 @@ async function pollJob() {
       }
     }
   } catch (e) {
-    // keep polling on transient errors
+    // tetap polling saat galat sementara
   }
 }
 async function startSwap() {
@@ -380,7 +379,7 @@ async function startSwap() {
   pollJob();
 }
 
-/* ---- events ---- */
+/* ---- event ---- */
 $("target-filter").addEventListener("input", () => loadTargets().catch(() => {}));
 $("target-rescan").addEventListener("click", () => {
   loadCandidates().catch(() => {});
@@ -447,7 +446,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* init */
+/* mulai */
 refreshHealth().then(() => {
   loadCandidates().catch(() => {});
   loadTargets().catch(() => {});

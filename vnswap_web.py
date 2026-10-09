@@ -1,23 +1,23 @@
-"""vnswap web interface — stdlib-only HTTP server + JSON API.
+"""Antarmuka web vnswap — server HTTP + JSON API hanya stdlib.
 
-Mirrors the TUI wizard 1:1 (Target -> Source -> Confirm -> Process)
-without requiring Textual. Serves ./web/ static files and exposes:
+Mencerminkan wizard TUI 1:1 (Target -> Sumber -> Cek -> Proses)
+tanpa membutuhkan Textual. Menyajikan file statis ./web/ dan menyediakan:
 
-  GET  /api/health          ffmpeg status, shared dir, counts
-  GET  /api/targets         detected Visualization.data pairs (newest first)
-  GET  /api/sources         newest supported audio/video files
-  GET  /api/bars?path=...   sidecar bars for waveform preview
-  GET  /api/plan?channels=  encode recipe info
-  POST /api/upload          multipart file upload -> {name, path, size}
+  GET  /api/health          status ffmpeg, dir shared, jumlah
+  GET  /api/targets         pasangan Visualization.data terdeteksi (terbaru dulu)
+  GET  /api/sources         file audio/video yang didukung terbaru
+  GET  /api/bars?path=...   bar sidecar untuk preview gelombang
+  GET  /api/plan?channels=  info resep encode
+  POST /api/upload          upload file multipart -> {name, path, size}
   POST /api/jobs            {target, source, channels, dry_run} -> {id}
-  GET  /api/jobs/<id>       job status / progress / logs / result
-  POST /api/jobs/<id>/rollback  restore .bak backups
+  GET  /api/jobs/<id>       status / progres / log / hasil job
+  POST /api/jobs/<id>/rollback  kembalikan backup .bak
 
-Usage:
+Cara pakai:
   python vnswap_web.py [--host 127.0.0.1] [--port 8000] [--shared DIR]
   python vnswap.py --web [--port 8000] [--host 127.0.0.1]
 
-No third-party dependencies. ThreadingHTTPServer + background threads.
+Tanpa dependensi pihak ketiga. ThreadingHTTPServer + thread latar.
 """
 
 from __future__ import annotations
@@ -88,12 +88,12 @@ STAGE_LABELS = [
     "Encode opus",
     "Visual 20 bars per detik",
     "Backup .bak",
-    "Swap atomik",
+    "Tukar atomik",
 ]
 
 
 # ---------------------------------------------------------------------------
-# Job store
+# Penyimpanan job
 # ---------------------------------------------------------------------------
 
 class JobStore:
@@ -156,17 +156,17 @@ SERVER_CONFIG: dict = {
 
 
 def is_loopback(host: str) -> bool:
-    """True for localhost bindings that never leave the device."""
+    """True untuk binding localhost yang tidak pernah keluar dari perangkat."""
     h = host.strip().lower()
     return h in ("localhost", "::1") or h.startswith("127.")
 
 
 def resolve_token(host: str, token: str | None,
                   no_auth: bool = False) -> tuple[str | None, bool]:
-    """Decide the API token. Returns (token, auto_generated).
+    """Menentukan token API. Mengembalikan (token, auto_generated).
 
-    Non-loopback hosts get an auto-generated token unless one is given
-    or auth is explicitly disabled with --no-auth.
+    Host non-loopback mendapat token otomatis kecuali sudah diberi
+    atau auth dimatikan eksplisit dengan --no-auth.
     """
     if no_auth:
         return None, False
@@ -191,7 +191,7 @@ def default_media_dirs() -> list[Path]:
 
 
 # ---------------------------------------------------------------------------
-# Job worker — mirrors RunScreen._run / run_pipeline step for step
+# Pekerja job — mencerminkan RunScreen._run / run_pipeline langkah demi langkah
 # ---------------------------------------------------------------------------
 
 def run_job(job_id: str) -> None:
@@ -211,7 +211,7 @@ def run_job(job_id: str) -> None:
         STORE.update(job_id, progress=max(0, min(100, pct)))
         STORE.log(job_id, level, msg)
 
-    # Validate target
+    # Validasi target
     try:
         raw_target = target_path.read_bytes()
         length, duration_tpl = core.parse_target_visualization_data(
@@ -334,7 +334,7 @@ def run_job(job_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# HTTP layer
+# Lapisan HTTP
 # ---------------------------------------------------------------------------
 
 def _send_json(handler: BaseHTTPRequestHandler, obj, status: int = 200) -> None:
@@ -383,7 +383,7 @@ def _sources_payload(dirs: list[Path]) -> list[dict]:
             "tag": media_tag(p),
             "supported": core.is_supported_source(p),
         })
-    # uploaded files first (newest)
+    # file upload dulu (terbaru)
     up = SERVER_CONFIG.get("upload_dir", UPLOAD_DIR)
     try:
         if isinstance(up, Path) and up.is_dir():
@@ -421,7 +421,7 @@ def _save_multipart(handler: BaseHTTPRequestHandler) -> dict | None:
     if length <= 0 or length > 600 * 1024 * 1024:
         return None
     raw = handler.rfile.read(length)
-    # minimal single-file parser: find filename="..." then \r\n\r\n ... \r\n--boundary
+    # parser file tunggal minimal: cari filename="..." lalu \r\n\r\n ... \r\n--boundary
     marker = b'filename="'
     idx = raw.find(marker)
     if idx < 0:
@@ -430,7 +430,7 @@ def _save_multipart(handler: BaseHTTPRequestHandler) -> dict | None:
     end = raw.find(b'"', start)
     fname = raw[start:end].decode("utf-8", "replace")
     fname = Path(fname).name or f"upload-{uuid.uuid4().hex[:8]}"
-    # keep extension, sanitize
+    # pertahankan ekstensi, bersihkan
     safe = "".join(c for c in fname if c.isalnum() or c in "._- ")[:120].strip()
     if not safe:
         safe = f"upload-{uuid.uuid4().hex[:8]}"
@@ -466,7 +466,7 @@ _MAX_AUDIO_BYTES = 300 * 1024 * 1024
 
 
 def _serve_media(handler: BaseHTTPRequestHandler, path: Path) -> None:
-    """Serve a local audio/video file with HTTP Range support for players."""
+    """Menyajikan file audio/video lokal dengan dukungan HTTP Range untuk pemutar."""
     try:
         total = path.stat().st_size
     except OSError:
@@ -516,11 +516,11 @@ def _serve_media(handler: BaseHTTPRequestHandler, path: Path) -> None:
 class Handler(BaseHTTPRequestHandler):
     server_version = "vnswap-web/1.0"
 
-    def log_message(self, fmt, *args):  # quieter
+    def log_message(self, fmt, *args):  # lebih sepi
         pass
 
     def _api_authorized(self) -> bool:
-        """Token check for /api/* — via ?token= query or Bearer header."""
+        """Cek token untuk /api/* — via query ?token= atau header Bearer."""
         token = SERVER_CONFIG.get("token")
         if not token:
             return True
@@ -531,7 +531,7 @@ class Handler(BaseHTTPRequestHandler):
         return self.headers.get("Authorization", "") == f"Bearer {token}"
 
     def _require_api_auth(self) -> bool:
-        """Send 401 and return False when the API token is missing/wrong."""
+        """Kirim 401 dan kembalikan False bila token API hilang/salah."""
         if self._api_authorized():
             return True
         _send_json(self, {
@@ -539,12 +539,12 @@ class Handler(BaseHTTPRequestHandler):
         }, 401)
         return False
 
-    # -- helpers ------------------------------------------------------
+    # -- pembantu ------------------------------------------------------
     def _serve_static(self, rel: str) -> bool:
         target = (WEB_DIR / rel).resolve() if rel else WEB_DIR / "index.html"
         try:
             if WEB_DIR.resolve() not in target.parents and target != WEB_DIR.resolve():
-                # allow exact index only
+                # hanya izinkan index persis
                 pass
             if target.is_dir():
                 target = target / "index.html"
@@ -628,7 +628,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/bars":
             req = qs.get("path", [None])[0]
             if not req:
-                return _send_json(self, {"error": "path required"}, 400)
+                return _send_json(self, {"error": "path wajib diisi"}, 400)
             p = Path(req)
             if not p.is_file():
                 return _send_json(self, {"error": "file tidak ada"}, 404)
@@ -681,7 +681,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/audio":
             req = qs.get("path", [None])[0]
             if not req:
-                return _send_json(self, {"error": "path required"}, 400)
+                return _send_json(self, {"error": "path wajib diisi"}, 400)
             p = Path(req)
             if not p.is_file():
                 return _send_json(self, {"error": "file tidak ada"}, 404)
@@ -842,9 +842,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--shared", default=None,
-                    help="folder .Shared (default: deteksi otomatis)")
+                    help="folder .Shared (bawaan: deteksi otomatis)")
     ap.add_argument("--token", default=None,
-                    help="token auth API (default: auto saat host non-lokal)")
+                    help="token auth API (bawaan: otomatis saat host non-lokal)")
     ap.add_argument("--no-auth", action="store_true",
                     help="nonaktifkan token auth (hanya untuk jaringan tepercaya)")
     ap.add_argument("--version", action="version",
@@ -865,7 +865,7 @@ def main(argv: list[str] | None = None) -> int:
     elif not is_loopback(args.host):
         print("[!!] tanpa token di jaringan lokal — hanya untuk jaringan tepercaya.")
     print(f"shared: {resolved}{auto_note}")
-    print("developed by hakiraadityaa (Ctrl+C untuk berhenti)")
+    print("dikembangkan oleh hakiraadityaa (Ctrl+C untuk berhenti)")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

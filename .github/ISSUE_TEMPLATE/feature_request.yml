@@ -1,6 +1,6 @@
 ---
-name: Feature request
-description: Propose an improvement (check the README Roadmap first)
+name: Permintaan fitur
+description: Usulkan perbaikan (cek Roadmap di README terlebih dahulu)
 labels: [enhancement]
 body:
   - type: dropdown
@@ -13,12 +13,12 @@ body:
   - type: textarea
     id: problem
     attributes:
-      label: Problem
-      description: What can't you do today, or what is painful?
+      label: Masalah
+      description: Apa yang belum bisa Anda lakukan saat ini, atau apa yang menyulitkan?
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
-      label: Proposal
-      description: How should it work? Mention TUI/CLI/web parity if relevant
+      label: Usulan
+      description: Bagaimana seharusnya cara kerjanya? Sebutkan paritas TUI/CLI/web jika relevan

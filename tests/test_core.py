@@ -1,6 +1,6 @@
-"""Tests for vnswap_core — stdlib only, no ffmpeg/Textual required.
+"""Tes untuk vnswap_core — hanya stdlib, tanpa perlu ffmpeg/Textual.
 
-ffmpeg-dependent paths (decode/probe) are skipped when no binary is found.
+Path yang bergantung ffmpeg (decode/probe) dilewati bila tidak ada binary yang ditemukan.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import vnswap_core as core
 
 
 # ---------------------------------------------------------------------------
-# helpers
+# helper
 # ---------------------------------------------------------------------------
 
 def _write_visualization(path: Path, bars: list[int]) -> Path:
@@ -27,7 +27,7 @@ def _write_visualization(path: Path, bars: list[int]) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# version
+# versi
 # ---------------------------------------------------------------------------
 
 def test_version_present_and_semver_like():
@@ -45,7 +45,7 @@ def test_shorten_middle_short_unchanged():
 
 
 def test_shorten_middle_truncates_middle():
-    name = "a" * 20 + "Visualization.data"  # > 28 chars
+    name = "a" * 20 + "Visualization.data"  # > 28 karakter
     out = core.shorten_middle(name, 28)
     assert len(out) == 28
     assert out.startswith("a")
@@ -121,7 +121,7 @@ def test_detect_targets_skips_invalid_and_missing_dir(tmp_path: Path):
 
 
 # ---------------------------------------------------------------------------
-# sources
+# sumber
 # ---------------------------------------------------------------------------
 
 def test_is_supported_source():
@@ -143,7 +143,7 @@ def test_discover_sources_filters_and_limits(tmp_path: Path):
 
 
 # ---------------------------------------------------------------------------
-# encode plan / vendor
+# rencana encode / vendor
 # ---------------------------------------------------------------------------
 
 def test_build_encode_plan_mono_and_stereo():
@@ -166,7 +166,7 @@ def test_read_opus_vendor_found_and_missing():
 
 
 # ---------------------------------------------------------------------------
-# visualization curve
+# kurva visualisasi
 # ---------------------------------------------------------------------------
 
 def test_compute_vis_empty_and_silent():
@@ -175,11 +175,11 @@ def test_compute_vis_empty_and_silent():
 
 
 def test_compute_vis_shape_and_range():
-    samples = [0.1] * 2400 + [0.9] * 2400  # quiet half, loud half
+    samples = [0.1] * 2400 + [0.9] * 2400  # setengah hening, setengah keras
     bars = core.compute_vis_from_samples(samples, 48000, 0.1)
     assert len(bars) == 2
     assert all(0 <= b <= 100 for b in bars)
-    assert bars[1] == 100  # loudest normalizes to 100
+    assert bars[1] == 100  # yang terkeras dinormalisasi ke 100
     assert bars[0] < bars[1]
 
 
@@ -201,7 +201,7 @@ def test_clamp_sidecar_resamples_clamps_and_caps(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# atomic swap / rollback
+# swap atomik / rollback
 # ---------------------------------------------------------------------------
 
 def test_atomic_swap_dry_run_touches_nothing(tmp_path: Path):
@@ -232,7 +232,7 @@ def test_atomic_swap_writes_and_backs_up_then_restores(tmp_path: Path):
 
 
 # ---------------------------------------------------------------------------
-# ffmpeg helpers (skip when binary absent)
+# helper ffmpeg (dilewati bila binary tidak ada)
 # ---------------------------------------------------------------------------
 
 FFMPEG = core.find_ffmpeg()
@@ -242,7 +242,7 @@ def test_find_ffmpeg_returns_str_or_none():
     assert FFMPEG is None or isinstance(FFMPEG, str)
 
 
-@pytest.mark.skipif(FFMPEG is None, reason="ffmpeg not installed")
+@pytest.mark.skipif(FFMPEG is None, reason="ffmpeg tidak terpasang")
 def test_probe_and_decode_error_paths(tmp_path: Path):
     bogus = tmp_path / "bogus.mp3"
     bogus.write_bytes(b"not real audio" * 100)

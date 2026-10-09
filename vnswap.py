@@ -1,6 +1,6 @@
-"""vnswap — termux voice-note swapper.
+"""vnswap — penukar voice-note termux.
 
-Fullscreen textual wizard + --cli fallback. Usage on termux:
+Panduan layar penuh + fallback --cli. Cara pakai di termux:
   pkg install python ffmpeg
   pip install textual
   termux-setup-storage
@@ -21,8 +21,8 @@ import vnswap_core as core
 
 
 # ---------------------------------------------------------------------------
-# CLI color helpers — ANSI manual, auto-disable when not a TTY.
-# No emoji. Levels: [OK], [info], [!!], [XX].
+# Pembantu warna CLI — ANSI manual, nonaktif otomatis bila bukan TTY.
+# Tanpa emoji. Level: [OK], [info], [!!], [XX].
 # ---------------------------------------------------------------------------
 
 _ANSI = {
@@ -79,7 +79,7 @@ def _fmt_dur(s: float) -> str:
 
 
 def _try_rich_table(title: str, columns: list[str], rows: list[list[str]]) -> bool:
-    """Render with rich if installed. Returns True when used."""
+    """Tampilkan dengan rich bila terpasang. Kembali True bila dipakai."""
     try:
         from rich.console import Console
         from rich.table import Table
@@ -132,9 +132,9 @@ def default_media_dirs() -> list[Path]:
 
 
 def run_cli(state: AppState) -> int:
-    """Text fallback when textual is not installed."""
-    cprint("voicenote swapper (mode teks)", "cyan", bold=True)
-    print("developed by hakiraadityaa")
+    """Fallback teks saat textual tidak terpasang."""
+    cprint("penukar voicenote (mode teks)", "cyan", bold=True)
+    print("dikembangkan oleh hakiraadityaa")
     print(f"shared: {state.shared_dir}")
     targets = core.detect_targets(state.shared_dir)
     if not targets:
@@ -148,7 +148,7 @@ def run_cli(state: AppState) -> int:
         status = "[OK] opus" if t.opus_path else "[--] tanpa opus"
         rows.append([mark, str(i), t.short_name, _fmt_dur(t.approx_duration_sec),
                      _fmt_size(t.length), status])
-    if not _try_rich_table("TARGET", ["", "No", "Nama", "Dur", "Size", "Status"], rows):
+    if not _try_rich_table("TARGET", ["", "No", "Nama", "Durasi", "Ukuran", "Status"], rows):
         cprint("TARGET:", "cyan", bold=True)
         for r in rows:
             print(f"{r[0]} [{r[1]}] {r[2]} | {r[3]} | {r[4]} | {r[5]}")
@@ -167,7 +167,7 @@ def run_cli(state: AppState) -> int:
             sz = 0
         srows.append([str(i), s.name, _fmt_size(sz)])
     if srows:
-        if not _try_rich_table("SUMBER", ["No", "Nama", "Size"], srows):
+        if not _try_rich_table("SUMBER", ["No", "Nama", "Ukuran"], srows):
             cprint("SUMBER:", "cyan", bold=True)
             for r in srows:
                 print(f"[{r[0]}] {r[1]} | {r[2]}")
@@ -193,7 +193,7 @@ def run_cli(state: AppState) -> int:
 
 
 def run_pipeline(state: AppState) -> int:
-    """Shared blocking pipeline used by --cli (TUI uses the worker)."""
+    """Alur blokir bersama untuk --cli (TUI memakai worker)."""
     import tempfile
 
     assert state.target is not None and state.source is not None
@@ -248,7 +248,7 @@ def run_pipeline(state: AppState) -> int:
             print("Buka WhatsApp dan putar VN untuk verifikasi.")
         else:
             cprint("[OK] preview selesai - tidak ada file diubah.", "green", bold=True)
-        print("developed by hakiraadityaa")
+        print("dikembangkan oleh hakiraadityaa")
     return 0
 
 
@@ -260,8 +260,10 @@ def main(argv: list[str] | None = None) -> int:
                         help="preview saja, tidak ubah file")
     parser.add_argument("--apply", action="store_true",
                         help="(deprecated, kini default) tulis langsung")
-    parser.add_argument("--stereo", action="store_true")
-    parser.add_argument("--cli", action="store_true")
+    parser.add_argument("--stereo", action="store_true",
+                        help="pakai stereo beta (default: mono)")
+    parser.add_argument("--cli", action="store_true",
+                        help="jalankan mode teks (tanpa TUI)")
     parser.add_argument("--web", action="store_true",
                         help="jalankan antarmuka web interaktif")
     parser.add_argument("--host", default="127.0.0.1",
@@ -298,7 +300,7 @@ def main(argv: list[str] | None = None) -> int:
         elif not vnswap_web.is_loopback(args.host):
             print("[!!] tanpa token di jaringan lokal — hanya untuk jaringan tepercaya.")
         print(f"shared: {STATE.shared_dir}")
-        print("developed by hakiraadityaa (Ctrl+C untuk berhenti)")
+        print("dikembangkan oleh hakiraadityaa (Ctrl+C untuk berhenti)")
         try:
             srv.serve_forever()
         except KeyboardInterrupt:
@@ -318,7 +320,7 @@ def main(argv: list[str] | None = None) -> int:
         return run_cli(STATE)
 
     class VnSwapApp(App):
-        TITLE = "voicenote swapper"
+        TITLE = "penukar voicenote"
         SUB_TITLE = "audio dan video jadi voice note - by hakiraadityaa"
         CSS = APP_CSS
 

@@ -1,7 +1,7 @@
-"""Textual fullscreen UI for vnswap — theme + target/source screens.
+"""UI layar penuh Textual untuk vnswap — tema + layar target/sumber.
 
-Dark Pro theme, dark-only. No emoji in code or UI text.
-Status markers use ASCII tags: [OK], [--], [!!], [XX].
+Tema Dark Pro, khusus gelap. Tanpa emoji di kode maupun teks UI.
+Marker status memakai tag ASCII: [OK], [--], [!!], [XX].
 """
 
 from __future__ import annotations
@@ -31,9 +31,9 @@ except ImportError:
 import vnswap_core as core
 
 # ---------------------------------------------------------------------------
-# Dark Pro theme — dark-only.
-# Single primary accent (emerald). INFO only for neutral info,
-# WARN only for recoverable warnings, DANGER only for destructive/errors.
+# Tema Dark Pro — khusus gelap.
+# Satu aksen utama (emerald). INFO hanya untuk info netral,
+# WARN hanya untuk peringatan yang bisa dipulihkan, DANGER hanya untuk destruktif/error.
 # ---------------------------------------------------------------------------
 
 BG = "#0B0E14"        # app background
@@ -49,7 +49,7 @@ INFO = "#22D3EE"      # cyan — neutral info only
 WARN = "#FBBF24"      # recoverable warnings only
 DANGER = "#F87171"    # destructive + fatal errors only
 
-CREDIT_TEXT = "developed by hakiraadityaa"
+CREDIT_TEXT = "dikembangkan oleh hakiraadityaa"
 
 APP_CSS = f"""
 Screen {{
@@ -298,11 +298,11 @@ Log {{
 
 
 # ---------------------------------------------------------------------------
-# Pure format helpers — no core logic changes.
+# Pembantu format murni — tanpa perubahan logika inti.
 # ---------------------------------------------------------------------------
 
 def render_stepper(active: int) -> str:
-    """Persistent 4-step indicator. active is 1..4."""
+    """Indikator 4 langkah yang selalu tampil. active bernilai 1..4."""
     steps = ["1 TARGET", "2 SUMBER", "3 CEK", "4 PROSES"]
     parts: list[str] = []
     for i, name in enumerate(steps, start=1):
@@ -316,7 +316,7 @@ def render_stepper(active: int) -> str:
 
 
 def rel_time(mtime: float) -> str:
-    """Relative time label, Termux-safe ASCII."""
+    """Label waktu relatif, aman ASCII untuk Termux."""
     try:
         delta = time.time() - float(mtime)
     except (TypeError, ValueError):
@@ -340,7 +340,7 @@ def rel_time(mtime: float) -> str:
 
 
 def fmt_size(num_bytes: int) -> str:
-    """Consistent size label with one decimal."""
+    """Label ukuran yang konsisten dengan satu desimal."""
     try:
         n = float(num_bytes)
     except (TypeError, ValueError):
@@ -355,7 +355,7 @@ def fmt_size(num_bytes: int) -> str:
 
 
 def fmt_dur(seconds: float) -> str:
-    """Duration as m:ss, no tilde prefix."""
+    """Durasi sebagai m:ss, tanpa awalan perkiraan."""
     try:
         s = max(0.0, float(seconds))
     except (TypeError, ValueError):
@@ -369,7 +369,7 @@ def fmt_dur(seconds: float) -> str:
 
 
 def media_tag(path: Path | str) -> str:
-    """Short type label from extension: 'MP3 A' or 'MP4 V'."""
+    """Label tipe singkat dari ekstensi: 'MP3 A' atau 'MP4 V'."""
     suffix = Path(str(path)).suffix.lower().lstrip(".")
     audio = {"mp3", "m4a", "aac", "wav", "ogg", "oga", "opus", "flac", "weba"}
     video = {"webm", "mp4", "m4v", "mov", "mkv", "3gp"}
@@ -383,7 +383,7 @@ def media_tag(path: Path | str) -> str:
 
 
 def wave_preview(bars: list[float] | bytes | None, width: int = 40) -> str:
-    """ASCII waveform from 0-100 bars. Termux-safe chars only."""
+    """Gelombang ASCII dari bar 0-100. Hanya karakter aman Termux."""
     glyphs = " .-=+#"
     if not bars:
         return "memuat pola..."
@@ -392,7 +392,7 @@ def wave_preview(bars: list[float] | bytes | None, width: int = 40) -> str:
     except (TypeError, ValueError):
         return "memuat pola..."
     if len(vals) > width:
-        # downsample evenly
+        # samakan resolusi secara merata
         step = len(vals) / width
         vals = [vals[int(i * step)] for i in range(width)]
     out: list[str] = []
@@ -407,18 +407,18 @@ def status_dot(ok: bool, ok_text: str = "[OK]", bad_text: str = "[--]") -> str:
 
 
 class TargetScreen(Screen):
-    """(1) pick the newest voice-note pair in .Shared/."""
+    """(1) pilih pasangan voice-note terbaru di .Shared/."""
 
     BINDINGS = [
         ("enter", "next", "Lanjut"),
-        ("r", "rescan", "Rescan"),
+        ("r", "rescan", "Pindai Ulang"),
         ("escape", "quit", "Keluar"),
     ]
 
     def compose(self) -> ComposeResult:
         yield Header()
         yield Label(render_stepper(1), id="stepper")
-        yield Label("STEP 1 DARI 3 - TARGET", id="pill")
+        yield Label("LANGKAH 1 DARI 3 - TARGET", id="pill")
         yield Label("Target - voice note yang akan diganti", id="title")
         yield Label(
             "Paling baru sudah dipilih. Up/Down pindah, Enter lanjut.",
@@ -426,16 +426,16 @@ class TargetScreen(Screen):
         )
         yield DataTable(id="targets", zebra_stripes=True, cursor_type="row")
         yield Static("", id="empty", classes="card")
-        yield Label("[Enter] Lanjut   [R] Rescan   [Up/Down] Pilih   [Esc] Keluar", id="hint")
+        yield Label("[Enter] Lanjut   [R] Pindai Ulang   [Up/Down] Pilih   [Esc] Keluar", id="hint")
         with Horizontal():
-            yield Button("Rescan", id="rescan")
+            yield Button("Pindai Ulang", id="rescan")
             yield Button("Lanjut >", id="next", variant="success")
         yield Label(CREDIT_TEXT, id="credit")
         yield Footer()
 
     def on_mount(self) -> None:
         table = self.query_one("#targets", DataTable)
-        table.add_columns("No", "Nama", "Dur", "Lama", "Size", "Status")
+        table.add_columns("No", "Nama", "Durasi", "Lama", "Ukuran", "Status")
         self._load()
         try:
             self.query_one("#next", Button).focus()
@@ -454,13 +454,13 @@ class TargetScreen(Screen):
             empty.update(
                 "Belum ada target di folder .Shared\n"
                 "1. Buka WhatsApp, putar satu voice note\n"
-                "2. Kembali ke sini, tekan [R] Rescan\n"
+                "2. Kembali ke sini, tekan [R] Pindai Ulang\n"
                 f"Path: {state.shared_dir}"
             )
             empty.display = True
             table.display = False
             self.query_one("#subtitle", Label).update(
-                "Belum ada Visualization.data — putar VN dulu, lalu Rescan."
+                "Belum ada Visualization.data — putar VN dulu, lalu Pindai Ulang."
             )
             return
         empty.display = False
@@ -505,7 +505,7 @@ class TargetScreen(Screen):
 
 
 class SourceScreen(Screen):
-    """(2) pick the replacement audio/video."""
+    """(2) pilih audio/video pengganti."""
 
     BINDINGS = [
         ("enter", "next", "Lanjut"),
@@ -515,7 +515,7 @@ class SourceScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Label(render_stepper(2), id="stepper")
-        yield Label("STEP 2 DARI 3 - SUMBER", id="pill")
+        yield Label("LANGKAH 2 DARI 3 - SUMBER", id="pill")
         yield Label("Sumber - audio atau video pengganti", id="title")
         yield Static("", id="context", classes="card")
         yield Input(placeholder="Filter: ketik untuk saring daftar...", id="filter")
@@ -534,7 +534,7 @@ class SourceScreen(Screen):
 
         state = get_app_state()
         table = self.query_one("#sources", DataTable)
-        table.add_columns("No", "Nama", "Tipe", "Size")
+        table.add_columns("No", "Nama", "Tipe", "Ukuran")
         target_name = state.target.short_name if state.target else "--"
         target_dur = fmt_dur(state.target.approx_duration_sec) if state.target else "--:--"
         self.query_one("#context", Static).update(
@@ -631,7 +631,7 @@ class SourceScreen(Screen):
 
 
 class ConfirmScreen(Screen):
-    """(3) summary + 1-klik tukar (tanpa ketik TUKAR)."""
+    """(3) ringkasan + tukar 1-klik (tanpa ketik TUKAR)."""
 
     BINDINGS = [
         ("enter", "go", "Tukar"),
@@ -641,7 +641,7 @@ class ConfirmScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Label(render_stepper(3), id="stepper")
-        yield Label("STEP 3 DARI 3 - CEK", id="pill")
+        yield Label("LANGKAH 3 DARI 3 - CEK", id="pill")
         yield Label("Ringkasan - cek sekali sebelum tukar", id="title")
         yield Label("Pastikan target dan sumber sudah benar.", id="subtitle")
         with Horizontal():
@@ -729,7 +729,7 @@ class ConfirmScreen(Screen):
             try:
                 if state.source.is_file():
                     src_size = state.source.stat().st_size
-                    # Rough heuristic: large source vs tiny sidecar target.
+                    # Heuristik kasar: sumber besar vs target sidecar kecil.
                     if src_size > 0 and state.target.length > 0:
                         ratio = src_size / max(1, state.target.length * 1024)
                         if ratio > 20:

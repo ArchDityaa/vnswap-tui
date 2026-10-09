@@ -1,7 +1,7 @@
-"""Run screen for vnswap: encode -> sidecar -> swap with progress.
+"""Layar proses untuk vnswap: encode -> sidecar -> swap dengan progres.
 
-No emoji. Stages use [x] done, [>] active, [ ] queued, [!] failed.
-Log levels: [info], [ok], [warn], [error].
+Tanpa emoji. Tahap memakai [x] selesai, [>] aktif, [ ] antre, [!] gagal.
+Level log: [info], [ok], [warn], [error].
 """
 
 from __future__ import annotations
@@ -26,14 +26,14 @@ import vnswap_core as core
 try:
     from vnswap_ui_nav import CREDIT_TEXT
 except ImportError:
-    CREDIT_TEXT = "developed by hakiraadityaa"
+    CREDIT_TEXT = "dikembangkan oleh hakiraadityaa"
 
 
 STAGE_LABELS = [
     "Encode opus",
-    "Visual 20 bars per detik",
+    "Visual 20 bar per detik",
     "Backup .bak",
-    "Swap atomik",
+    "Tukar atomik",
 ]
 
 
@@ -46,7 +46,7 @@ def _stage_text(states: list[str]) -> str:
 
 
 class RunScreen(Screen):
-    """(4) encode -> sidecar -> backup -> swap with live progress."""
+    """(4) encode -> sidecar -> backup -> swap dengan progres langsung."""
 
     BINDINGS = [
         ("escape", "back", "Kembali"),
@@ -59,7 +59,7 @@ class RunScreen(Screen):
             yield Label(render_stepper(4), id="stepper")
         except ImportError:
             pass
-        yield Label("STEP PROSES - KONVERSI DAN PENUKARAN", id="pill")
+        yield Label("LANGKAH PROSES - KONVERSI DAN PENUKARAN", id="pill")
         yield Label("Proses - encode, visualisasi, lalu tukar", id="title")
         yield Label("Backup .bak dibuat otomatis sebelum tulis.", id="subtitle")
         yield Static(_stage_text(["todo", "todo", "todo", "todo"]), id="stages")
@@ -173,7 +173,7 @@ class RunScreen(Screen):
                 vendor = core.read_opus_vendor(converted)
                 step(45, f'vendor tag: "{vendor or "tak terbaca"}".', "info")
                 self._set_stage(1, "active")
-                step(55, "decode dan hitung visualisasi 20 bars per detik...", "info")
+                step(55, "decode dan hitung visualisasi 20 bar per detik...", "info")
                 samples, duration = await asyncio.to_thread(
                     core.decode_pcm_mono, ffmpeg, state.source
                 )

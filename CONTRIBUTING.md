@@ -1,15 +1,15 @@
-# Contributing to vnswap-tui
+# Berkontribusi di vnswap-tui
 
-## Setup (Termux or any Python 3.10+ machine)
+## Penyiapan (Termux atau mesin Python 3.10+ mana pun)
 
 ```bash
-pkg install python ffmpeg git -y   # Termux only
+pkg install python ffmpeg git -y   # khusus Termux
 pip install -r requirements.txt
 pip install pytest                 # for tests
-termux-setup-storage               # Termux only
+termux-setup-storage               # khusus Termux
 ```
 
-## Running
+## Menjalankan
 
 ```bash
 python vnswap.py           # fullscreen TUI
@@ -18,30 +18,30 @@ python vnswap.py --web     # web UI at http://127.0.0.1:8000/
 python vnswap.py --version # print version
 ```
 
-## Tests
+## Tes
 
 ```bash
 pytest -q
 ```
 
-`vnswap_core.py` is stdlib-only by design, so the suite runs anywhere —
-no Textual, no ffmpeg required (ffmpeg-dependent paths are skipped when the
-binary is absent). New logic in `vnswap_core` must come with tests.
+`vnswap_core.py` hanya-stdlib by design, jadi suite berjalan di mana saja —
+tanpa perlu Textual, tanpa perlu ffmpeg (jalur yang bergantung pada ffmpeg
+dilewati saat binary tidak ada). Logika baru di `vnswap_core` wajib disertai tes.
 
-## Code rules
+## Aturan Kode
 
-- `vnswap_core.py` and `vnswap_web.py`: **stdlib only**. No third-party imports.
-- UI strings: Indonesian, ASCII-only status markers (`[OK]`, `[--]`, `[!!]`,
-  `[XX]`), no emoji — the app targets Termux terminals.
-- Theme is dark-only; web changes must reuse the Dark Pro tokens in
-  `web/styles.css` (same values as `vnswap_ui_nav.py`).
-- The web backend must keep behavior identical to the TUI by reusing
-  `vnswap_core` — never reimplement encode/sidecar/swap logic.
-- Update `CHANGELOG.md` under `[Unreleased]` for any user-visible change.
+- `vnswap_core.py` dan `vnswap_web.py`: **hanya stdlib**. Tanpa import pihak ketiga.
+- String UI: Bahasa Indonesia, marker status ASCII saja (`[OK]`, `[--]`, `[!!]`,
+  `[XX]`), tanpa emoji — aplikasi menargetkan terminal Termux.
+- Tema hanya-gelap; perubahan web wajib memakai ulang token Dark Pro di
+  `web/styles.css` (nilai yang sama seperti `vnswap_ui_nav.py`).
+- Backend web wajib menjaga perilaku identik dengan TUI dengan memakai ulang
+  `vnswap_core` — jangan pernah mengimplementasikan ulang logika encode/sidecar/swap.
+- Perbarui `CHANGELOG.md` di bawah `[Unreleased]` untuk setiap perubahan yang terlihat pengguna.
 
-## Releases
+## Rilis
 
-Maintainers tag releases from `main`:
+Maintainer menandai rilis dari `main`:
 
 ```bash
 git tag -a vX.Y.Z -m "vnswap-tui vX.Y.Z"
@@ -49,4 +49,4 @@ git push origin vX.Y.Z
 gh release create vX.Y.Z --title "vX.Y.Z" --notes-file CHANGELOG.md
 ```
 
-Bump `VERSION` in `vnswap_core.py` and `version` in `pyproject.toml` together.
+Naikkan `VERSION` di `vnswap_core.py` dan `version` di `pyproject.toml` bersamaan.

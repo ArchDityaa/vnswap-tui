@@ -1,4 +1,4 @@
-"""Tests for .Shared auto-detection (stdlib only, no device needed)."""
+"""Tes untuk deteksi otomatis .Shared (hanya stdlib, tanpa perlu perangkat)."""
 
 from __future__ import annotations
 

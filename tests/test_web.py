@@ -1,7 +1,7 @@
-"""Live-server tests for vnswap_web endpoints (no browser needed).
+"""Tes server-langsung untuk endpoint vnswap_web (tanpa browser).
 
-Preview tests need ffmpeg and are skipped without it; audio/auth/health
-tests only need the stdlib.
+Tes preview butuh ffmpeg dan dilewati bila tidak ada; tes audio/auth/health
+hanya butuh stdlib.
 """
 
 from __future__ import annotations
@@ -102,10 +102,10 @@ def test_preview_validation_errors(srv):
     assert status == 404
 
 
-@pytest.mark.skipif(FFMPEG is None, reason="ffmpeg not installed")
+@pytest.mark.skipif(FFMPEG is None, reason="ffmpeg tidak terpasang")
 def test_preview_computes_resampled_bars(srv):
     base, root = srv
-    # real 1s tone as the source
+    # nada 1 detik asli sebagai sumber
     tone = root / "tone.wav"
     import subprocess
     r = subprocess.run([FFMPEG, "-hide_banner", "-loglevel", "error", "-y",
