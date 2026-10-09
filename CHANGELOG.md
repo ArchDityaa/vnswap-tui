@@ -6,6 +6,18 @@ penomoran versi mengikuti [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.7.0] — 2026-10-09
+
+### Diubah
+
+- Rombak tampilan web mobile-first (palet Catppuccin Mocha tetap): header
+  ramping menempel dengan blur, stepper segmen 4 kolom menempel, daftar
+  target/sumber jadi kartu di layar kecil (tabel kembali di layar besar),
+  tombol aksi menempel di bawah tiap kartu, input 16px agar tidak zoom
+  otomatis, area sentuh min 48px, lipatan folder .Shared yang terbuka
+  otomatis bila tidak terdeteksi, waveform tajam (DPR) dengan warna
+  mauve/teal dan digambar ulang saat rotasi layar.
+
 ## [1.6.0] — 2026-10-09
 
 ### Ditambahkan

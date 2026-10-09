@@ -68,6 +68,8 @@ async function refreshHealth() {
     }
     $("foot-shared").textContent = h.shared_dir;
     if (h.version) $("foot-ver").textContent = "v" + h.version;
+    $("shared-current").textContent = h.shared_dir || "otomatis";
+    if (!h.shared_exists) $("shared-card").open = true;
     $("shared-hint").textContent = h.shared_exists ? "" : "[!!] folder tidak ada";
     const ok = h.ffmpeg_ok && h.shared_exists;
     $("health-dot").className = "dot " + (h.ffmpeg_ok ? "ok" : "bad");
@@ -102,6 +104,9 @@ async function loadCandidates() {
   }
   if (!j.candidates.length) {
     $("shared-hint").textContent = "[!!] .Shared tidak terdeteksi — putar satu VN di WhatsApp lalu Pindai Ulang, atau isi path manual.";
+    $("shared-card").open = true;
+  } else if (j.selected) {
+    $("shared-current").textContent = j.selected;
   }
 }
 
@@ -134,11 +139,12 @@ async function loadTargets() {
   rows.slice(0, 50).forEach((t) => {
     const tr = document.createElement("tr");
     if (state.target && state.target.path === t.path) tr.className = "sel";
-    tr.innerHTML = "<td>" + (state.target && state.target.path === t.path ? "[x]" : "[ ]") + "</td>" +
-      "<td class='name" + "' title='" + esc(t.name) + "'>" + esc(t.short_name) + "</td>" +
-      "<td>" + esc(t.duration_str) + "</td><td>" + esc(t.rel) + "</td>" +
-      "<td>" + esc(t.size_str) + "</td>" +
-      "<td>" + (t.has_opus ? "[OK] opus" : "[--] tanpa opus") + "</td>";
+    tr.innerHTML = "<td class='mark'>" + (state.target && state.target.path === t.path ? "[x]" : "[ ]") + "</td>" +
+      "<td class='name" + "' data-label='Nama' title='" + esc(t.name) + "'>" + esc(t.short_name) + "</td>" +
+      "<td data-label='Durasi'>" + esc(t.duration_str) + "</td>" +
+      "<td data-label='Lama'>" + esc(t.rel) + "</td>" +
+      "<td data-label='Ukuran'>" + esc(t.size_str) + "</td>" +
+      "<td data-label='Status'>" + (t.has_opus ? "[OK] opus" : "[--] tanpa opus") + "</td>";
     tr.addEventListener("click", () => { state.target = t; paintTargets(); paintSourceContext(); });
     tr.addEventListener("dblclick", () => { if (state.target) { loadSources(); go(2); } });
     tb.appendChild(tr);
@@ -164,16 +170,19 @@ function paintSources() {
   const manual = $("manual-path").value.trim();
   if (!rows.length && !manual) {
     const tr = document.createElement("tr");
-    tr.innerHTML = "<td>--</td><td>Upload file atau ketik path manual</td><td>--</td><td>--</td>";
+    tr.innerHTML = "<td class='mark' data-label='Pilih'>--</td>" +
+      "<td class='name' data-label='Nama'>Upload file atau ketik path manual</td>" +
+      "<td data-label='Tipe'>--</td><td data-label='Ukuran'>--</td>";
     tb.appendChild(tr);
     return;
   }
   rows.slice(0, 60).forEach((s) => {
     const tr = document.createElement("tr");
     if (state.sourcePath === s.path) tr.className = "sel";
-    tr.innerHTML = "<td>" + (state.sourcePath === s.path ? "[x]" : "[ ]") + "</td>" +
-      "<td class='name' title='" + esc(s.path) + "'>" + esc(s.name) + (s.uploaded ? " (unggahan)" : "") + "</td>" +
-      "<td>" + esc(s.tag) + "</td><td>" + esc(s.size_str) + "</td>";
+    tr.innerHTML = "<td class='mark'>" + (state.sourcePath === s.path ? "[x]" : "[ ]") + "</td>" +
+      "<td class='name' data-label='Nama' title='" + esc(s.path) + "'>" + esc(s.name) + (s.uploaded ? " (unggahan)" : "") + "</td>" +
+      "<td data-label='Tipe'>" + esc(s.tag) + "</td>" +
+      "<td data-label='Ukuran'>" + esc(s.size_str) + "</td>";
     tr.addEventListener("click", () => {
       state.source = s; state.sourcePath = s.path;
       $("manual-path").value = "";
@@ -227,18 +236,28 @@ async function uploadFile(f) {
 }
 
 /* ---- langkah 3: cek ---- */
-function drawWave(bars, id) {
+function drawWave(bars, id, color) {
   const cv = $(id || "wave");
+  // samakan resolusi kanvas dengan lebar layar x DPR agar tajam di HP
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  const cw = cv.clientWidth || 640, chh = 96;
+  if (cv.width !== Math.round(cw * dpr) || cv.height !== Math.round(chh * dpr)) {
+    cv.width = Math.round(cw * dpr);
+    cv.height = Math.round(chh * dpr);
+  }
   const ctx = cv.getContext("2d");
-  const W = cv.width, H = cv.height;
-  ctx.clearRect(0, 0, W, H);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cw, chh);
   if (!bars || !bars.length) return;
   const n = bars.length;
-  const bw = Math.max(1, W / n - 1);
-  ctx.fillStyle = "#34D399";
+  const bw = Math.max(1, cw / n - 1);
+  ctx.fillStyle = color || "#CBA6F7";
   bars.forEach((v, i) => {
-    const h = Math.max(2, (Math.min(100, v) / 100) * (H - 8));
-    ctx.fillRect(i * (W / n), (H - h) / 2, bw, h);
+    const h = Math.max(2, (Math.min(100, v) / 100) * (chh - 8));
+    const x = Math.round(i * (cw / n));
+    const w = Math.max(1, Math.round(bw));
+    const y = Math.round((chh - h) / 2);
+    ctx.fillRect(x, y, w, Math.round(h));
   });
 }
 async function refreshConfirm() {
@@ -248,6 +267,8 @@ async function refreshConfirm() {
        (t.has_opus ? "[OK] opus pendamping ada" : "[--] tanpa opus"))
     : "TARGET\n--";
   const sp = state.sourcePath;
+  state.lastTargetBars = null;
+  state.lastSourceBars = null;
   $("confirm-source").textContent = sp
     ? ("SUMBER\n" + (state.source ? state.source.name : sp.split(/[\\/]/).pop()) + "\n" + sp)
     : "SUMBER\n--";
@@ -255,7 +276,8 @@ async function refreshConfirm() {
   if (t) {
     try {
       const j = await api("/api/bars?path=" + encodeURIComponent(t.path));
-      drawWave(j.bars);
+      drawWave(j.bars, "wave", "#CBA6F7");
+      state.lastTargetBars = j.bars;
       const glyphs = " .-=+#";
       const vals = j.bars.filter((_, i) => i % Math.max(1, Math.floor(j.bars.length / 40)) === 0).slice(0, 40);
       $("wave-ascii").textContent = "Pola: " + vals.map((v) =>
@@ -283,7 +305,8 @@ async function refreshConfirm() {
     try {
       const pv = await api("/api/preview?target=" + encodeURIComponent(t.path) +
         "&source=" + encodeURIComponent(sp));
-      drawWave(pv.source_bars, "wave-src");
+      drawWave(pv.source_bars, "wave-src", "#94E2D5");
+      state.lastSourceBars = pv.source_bars;
       $("preview-info").textContent = "Sumber: " + pv.source_bars_raw + " bar (" +
         pv.source_duration_str + ") -> " + pv.target_length + " bar target.";
     } catch (e) {
@@ -402,6 +425,18 @@ dz.addEventListener("drop", async (e) => {
   if (f) await uploadFile(f).catch((err) => { $("manual-status").textContent = "[XX] " + err.message; });
 });
 dz.addEventListener("click", () => $("upload").click());
+dz.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("upload").click(); }
+});
+let resizeT = null;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => {
+    if ($("step-3").classList.contains("hidden")) return;
+    if (state.lastTargetBars) drawWave(state.lastTargetBars, "wave", "#CBA6F7");
+    if (state.lastSourceBars) drawWave(state.lastSourceBars, "wave-src", "#94E2D5");
+  }, 150);
+});
 document.querySelectorAll('input[name=mode]').forEach((r) =>
   r.addEventListener("change", () => {
     state.dryRun = document.querySelector('input[name=mode]:checked').value === "preview";

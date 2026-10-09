@@ -2,51 +2,61 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#11111B">
 <title>penukar voicenote — web</title>
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
-    <div class="brand-title">penukar voicenote</div>
-    <div class="brand-sub">audio dan video jadi voice note — by hakiraadityaa</div>
+    <span class="brand-dot" aria-hidden="true"></span>
+    <div class="brand-text">
+      <div class="brand-title">penukar voicenote</div>
+      <div class="brand-sub">audio dan video jadi voice note</div>
+    </div>
   </div>
-  <div class="health" id="health">
+  <div class="health" id="health" role="status">
     <span class="dot" id="health-dot">…</span>
     <span id="health-text">memuat…</span>
   </div>
 </header>
 
 <nav class="stepper" id="stepper" aria-label="Langkah">
-  <button data-step="1" class="active"><b>1</b> TARGET</button>
-  <span class="sep">--</span>
-  <button data-step="2"><b>2</b> SUMBER</button>
-  <span class="sep">--</span>
-  <button data-step="3"><b>3</b> CEK</button>
-  <span class="sep">--</span>
-  <button data-step="4"><b>4</b> PROSES</button>
+  <button data-step="1" class="active"><b>1</b><span>Target</span></button>
+  <button data-step="2"><b>2</b><span>Sumber</span></button>
+  <button data-step="3"><b>3</b><span>Cek</span></button>
+  <button data-step="4"><b>4</b><span>Proses</span></button>
 </nav>
 
 <main class="wrap">
-  <div class="shared-row">
-    <label>Folder .Shared
-      <select id="shared-select" aria-label="Pilih folder .Shared"></select>
-    </label>
-    <label>Atau path manual
-      <input id="shared-input" type="text" spellcheck="false" placeholder="/path/ke/.Shared">
-    </label>
-    <button id="shared-apply" class="btn ghost">Terapkan</button>
-    <span class="hint" id="shared-hint"></span>
-  </div>
+  <details class="shared-card" id="shared-card">
+    <summary>
+      <span class="shared-label">Folder .Shared</span>
+      <span class="shared-current" id="shared-current">otomatis</span>
+    </summary>
+    <div class="shared-body">
+      <label>Pilih kandidat
+        <select id="shared-select" aria-label="Pilih folder .Shared"></select>
+      </label>
+      <label>Atau path manual
+        <input id="shared-input" type="text" spellcheck="false" placeholder="/path/ke/.Shared" inputmode="url">
+      </label>
+      <div class="shared-actions">
+        <button id="shared-apply" class="btn ghost">Terapkan</button>
+        <span class="hint" id="shared-hint"></span>
+      </div>
+    </div>
+  </details>
 
   <!-- LANGKAH 1 -->
   <section class="card step" id="step-1">
-    <h2>Target <span class="pill">LANGKAH 1 DARI 3</span></h2>
-    <p class="muted">Voice note yang akan diganti. Paling baru di atas, klik baris untuk pilih.</p>
+    <div class="eyebrow">Langkah 1 dari 3</div>
+    <h2>Target</h2>
+    <p class="muted">Voice note yang akan diganti. Paling baru di atas, ketuk untuk pilih.</p>
     <div class="toolbar">
-      <input id="target-filter" type="search" placeholder="Filter: ketik untuk saring…">
+      <input id="target-filter" type="search" placeholder="Saring…" aria-label="Saring target">
       <button id="target-rescan" class="btn ghost">Pindai Ulang</button>
     </div>
     <div class="table-wrap">
@@ -57,20 +67,23 @@
       <div class="empty hidden" id="target-empty"></div>
     </div>
     <div class="nav-row">
-      <span class="hint">Enter = Lanjut. R = Pindai Ulang.</span>
-      <button class="btn primary" id="to-2">Lanjut &gt;</button>
+      <button class="btn primary" id="to-2">Lanjut</button>
     </div>
   </section>
 
   <!-- LANGKAH 2 -->
   <section class="card step hidden" id="step-2">
-    <h2>Sumber <span class="pill">LANGKAH 2 DARI 3</span></h2>
+    <div class="eyebrow">Langkah 2 dari 3</div>
+    <h2>Sumber</h2>
     <p class="muted" id="source-context">—</p>
     <div class="toolbar">
-      <input id="source-filter" type="search" placeholder="Filter daftar…">
+      <input id="source-filter" type="search" placeholder="Saring…" aria-label="Saring sumber">
       <label class="btn ghost file-btn">Unggah<input id="upload" type="file" hidden></label>
     </div>
-    <div id="dropzone" class="dropzone">Seret &amp; letakkan file audio/video di sini, atau klik Unggah.<br><span class="muted">mp3 m4a aac wav ogg opus flac weba · mp4 webm mov mkv 3gp</span></div>
+    <div id="dropzone" class="dropzone" role="button" tabindex="0">
+      <span class="dz-title">Ketuk untuk pilih file audio/video</span>
+      <span class="muted dz-sub">mp3 m4a aac wav ogg opus flac · mp4 webm mov mkv 3gp</span>
+    </div>
     <div class="table-wrap">
       <table id="source-table">
         <thead><tr><th></th><th>Nama</th><th>Tipe</th><th>Ukuran</th></tr></thead>
@@ -78,18 +91,19 @@
       </table>
     </div>
     <label class="manual">…atau path manual di server
-      <input id="manual-path" type="text" placeholder="/sdcard/Download/lagu.mp3" spellcheck="false">
+      <input id="manual-path" type="text" placeholder="/sdcard/Download/lagu.mp3" spellcheck="false" inputmode="url">
     </label>
     <div class="manual-status" id="manual-status"></div>
     <div class="nav-row">
-      <button class="btn ghost" id="back-1">&lt; Kembali</button>
-      <button class="btn primary" id="to-3">Lanjut &gt;</button>
+      <button class="btn ghost" id="back-1">Kembali</button>
+      <button class="btn primary" id="to-3">Lanjut</button>
     </div>
   </section>
 
   <!-- LANGKAH 3 -->
   <section class="card step hidden" id="step-3">
-    <h2>Ringkasan <span class="pill">LANGKAH 3 DARI 3</span></h2>
+    <div class="eyebrow">Langkah 3 dari 3</div>
+    <h2>Ringkasan</h2>
     <p class="muted">Cek sekali sebelum tukar.</p>
     <div class="two-col">
       <div class="mini-card" id="confirm-target">TARGET<br>—</div>
@@ -97,20 +111,22 @@
     </div>
     <div class="wave-wrap">
       <div class="wave-title">Target (saat ini)</div>
-      <canvas id="wave" width="640" height="96"></canvas>
+      <canvas id="wave" height="96"></canvas>
       <div class="wave-title">Sumber (hasil preview, disesuaikan ke panjang target)</div>
-      <canvas id="wave-src" width="640" height="96"></canvas>
+      <canvas id="wave-src" height="96"></canvas>
       <div class="wave-ascii" id="wave-ascii"></div>
       <div class="wave-ascii" id="preview-info"></div>
     </div>
     <div class="audio-row">
-      <label>Dengar target (saat ini)
+      <figure>
+        <figcaption>Dengar target (saat ini)</figcaption>
         <audio id="aud-target" controls preload="none"></audio>
-      </label>
-      <label>Dengar sumber (pengganti)
+      </figure>
+      <figure>
+        <figcaption>Dengar sumber (pengganti)</figcaption>
         <audio id="aud-source" controls preload="none"></audio>
-        <video id="vid-source" class="hidden" controls preload="none"></video>
-      </label>
+        <video id="vid-source" class="hidden" controls preload="none" playsinline></video>
+      </figure>
     </div>
     <div class="opts">
       <fieldset>
@@ -127,14 +143,15 @@
     <div class="banner" id="mode-banner"></div>
     <div class="banner warn hidden" id="size-warn"></div>
     <div class="nav-row">
-      <button class="btn ghost" id="back-2">&lt; Kembali</button>
+      <button class="btn ghost" id="back-2">Kembali</button>
       <button class="btn primary big" id="swap-now">TUKAR SEKARANG</button>
     </div>
   </section>
 
   <!-- LANGKAH 4 -->
   <section class="card step hidden" id="step-4">
-    <h2>Proses <span class="pill">PROSES</span></h2>
+    <div class="eyebrow">Proses</div>
+    <h2>Menukar…</h2>
     <p class="muted">Backup .bak dibuat otomatis sebelum tulis.</p>
     <ol class="stages" id="stages">
       <li data-i="0">Encode opus</li>
