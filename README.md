@@ -134,7 +134,7 @@ Notes:
 | `vnswap_ui_run.py` | Process screen + asyncio worker (progress, log, result) |
 | `vnswap_web.py` | Web server (stdlib-only `http.server` + JSON API + background jobs, token auth for LAN) |
 | `web/index.html` | Web wizard markup (Target → Source → Confirm → Process) |
-| `web/styles.css` | Dark Pro theme for the web (same tokens as the TUI) |
+| `web/styles.css` | Catppuccin Mocha theme for the web (TUI keeps Dark Pro) |
 | `web/app.js` | Web client (fetch + polling, waveform canvas, upload, rollback) |
 | `tests/test_core.py` | `pytest` suite for `vnswap_core` (no ffmpeg/Textual needed) |
 | `tests/test_web.py` | Live-server tests: health, preview, audio/Range, token gating |
@@ -164,6 +164,15 @@ Loopback (`127.0.0.1`) needs no auth. Binding a non-loopback host enables
 token auth on all `/api/*` endpoints: a token is auto-generated and printed
 (open the printed `?token=...` URL), `--token RAHASIA` sets your own, and
 `--no-auth` disables it (only for networks you trust).
+
+### Deteksi .Shared otomatis
+
+The old hardcoded path (`.../emulated/999/.../accounts/1006/.Shared`) only
+fits one device. The server now probes `$VNSWAP_SHARED`, the default, and
+every account/user number variant, then uses the folder with the most voice
+notes. Precedence: explicit `--shared`, `VNSWAP_SHARED`, auto-detect. The
+dropdown above the wizard lists every candidate with its target count —
+pick one and press Terapkan, or type a path manually.
 
 ## Supported sources
 

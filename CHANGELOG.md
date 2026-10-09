@@ -6,6 +6,27 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-10-09
+
+### Fixed
+
+- `.Shared` auto-detection: the hardcoded `999`/`1006` path failed on any
+  other device. The server now probes `$VNSWAP_SHARED`, the default, and
+  every account/user number variant, then uses the folder with the most
+  voice notes. `--shared` (or the UI picker) still overrides; a missing
+  explicit path is kept so errors stay visible.
+
+### Added
+
+- `GET /api/shared-candidates`: ranked `.Shared` folders with target
+  counts; the web UI shows them in a dropdown next to the manual path
+  field, plus `shared_auto` in `/api/health`.
+- Catppuccin Mocha web theme (dark only): mauve accent, green primary
+  action, tinted status banners, roomier cards, larger mobile tap targets.
+  The TUI keeps its Dark Pro theme.
+- `tests/test_shared.py`: auto-detection unit tests; candidates endpoint
+  covered in `tests/test_web.py`.
+
 ## [1.3.0] — 2026-10-09
 
 ### Added

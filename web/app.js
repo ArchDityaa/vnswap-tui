@@ -60,7 +60,12 @@ async function refreshHealth() {
   try {
     const h = await api("/api/health");
     state.shared = h.shared_dir;
-    $("shared-input").value = h.shared_dir;
+    $("shared-input").value = "";
+    const sel = $("shared-select");
+    if (sel && sel.options.length &&
+        [...sel.options].some((o) => o.value === h.shared_dir)) {
+      sel.value = h.shared_dir;
+    }
     $("foot-shared").textContent = h.shared_dir;
     $("shared-hint").textContent = h.shared_exists ? "" : "[!!] folder tidak ada";
     const ok = h.ffmpeg_ok && h.shared_exists;
@@ -71,6 +76,31 @@ async function refreshHealth() {
   } catch (e) {
     $("health-dot").className = "dot bad";
     $("health-text").textContent = "[XX] " + (e.message || "server tidak merespons");
+  }
+}
+
+async function loadCandidates() {
+  let j = null;
+  try { j = await api("/api/shared-candidates"); } catch (e) { return; }
+  const sel = $("shared-select");
+  sel.innerHTML = "";
+  j.candidates.forEach((c) => {
+    const o = document.createElement("option");
+    o.value = c.path;
+    o.textContent = c.path + " (" + c.targets + " target)";
+    sel.appendChild(o);
+  });
+  if (j.selected) {
+    if (![...sel.options].some((o) => o.value === j.selected)) {
+      const o = document.createElement("option");
+      o.value = j.selected;
+      o.textContent = j.selected + " (0 target)";
+      sel.appendChild(o);
+    }
+    sel.value = j.selected;
+  }
+  if (!j.candidates.length) {
+    $("shared-hint").textContent = "[!!] .Shared tidak terdeteksi — putar satu VN di WhatsApp lalu Rescan, atau isi path manual.";
   }
 }
 
@@ -369,8 +399,10 @@ document.querySelectorAll('input[name=channels]').forEach((r) =>
     refreshConfirm();
   }));
 $("shared-apply").addEventListener("click", () => {
-  state.shared = $("shared-input").value.trim() || state.shared;
+  const manual = $("shared-input").value.trim();
+  state.shared = manual || $("shared-select").value || state.shared;
   loadTargets().catch(() => {}); refreshHealth();
+  loadCandidates().catch(() => {});
 });
 $("to-2").addEventListener("click", () => { if (state.target) { loadSources(); go(2); } });
 $("back-1").addEventListener("click", () => go(1));
@@ -401,4 +433,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* init */
-refreshHealth().then(loadTargets).catch(() => {});
+refreshHealth().then(() => {
+  loadCandidates().catch(() => {});
+  loadTargets().catch(() => {});
+}).catch(() => {});

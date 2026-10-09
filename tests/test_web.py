@@ -57,6 +57,18 @@ def test_health_reports_version_and_auth_flag(srv):
     h = json.loads(body)
     assert h["version"] == core.VERSION
     assert h["auth"] is False
+    assert h["shared_auto"] is False
+
+
+def test_shared_candidates_lists_with_counts(srv, monkeypatch):
+    base, root = srv
+    monkeypatch.setenv("VNSWAP_SHARED", str(root))
+    status, _, body = _get(base, "/api/shared-candidates")
+    assert status == 200
+    j = json.loads(body)
+    assert j["selected"] == str(root)
+    hit = [c for c in j["candidates"] if c["path"] == str(root)]
+    assert hit and hit[0]["targets"] == 1
 
 
 def test_audio_full_and_range_and_404(srv):

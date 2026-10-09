@@ -151,6 +151,7 @@ SERVER_CONFIG: dict = {
     "media_dirs": [],
     "upload_dir": UPLOAD_DIR,
     "token": None,
+    "shared_auto": False,
 }
 
 
@@ -588,6 +589,7 @@ class Handler(BaseHTTPRequestHandler):
             return _send_json(self, {
                 "version": core.VERSION,
                 "auth": bool(SERVER_CONFIG.get("token")),
+                "shared_auto": bool(SERVER_CONFIG.get("shared_auto")),
                 "ffmpeg": ffmpeg,
                 "ffmpeg_ok": bool(ffmpeg),
                 "shared_dir": str(shared),
@@ -667,6 +669,13 @@ class Handler(BaseHTTPRequestHandler):
             if not p.is_file():
                 return _send_json(self, {"error": "file tidak ada"}, 404)
             return _serve_media(self, p)
+        if path == "/api/shared-candidates":
+            ranked = core.rank_shared_candidates()
+            return _send_json(self, {
+                "selected": str(SERVER_CONFIG.get("shared_dir", "")),
+                "candidates": [{"path": str(p), "targets": n}
+                               for p, n in ranked],
+            })
         if path == "/api/plan":
             try:
                 ch = int(qs.get("channels", ["1"])[0])
@@ -769,7 +778,10 @@ def run_server(host: str = "127.0.0.1", port: int = 8000,
                shared_dir: Path | None = None,
                media_dirs: list[Path] | None = None,
                token: str | None = None) -> ThreadingHTTPServer:
-    SERVER_CONFIG["shared_dir"] = shared_dir or core.DEFAULT_SHARED_DIR
+    auto = shared_dir is None
+    resolved = core.auto_shared_dir(shared_dir)
+    SERVER_CONFIG["shared_dir"] = resolved
+    SERVER_CONFIG["shared_auto"] = auto
     SERVER_CONFIG["media_dirs"] = (media_dirs if media_dirs is not None
                                    else default_media_dirs())
     SERVER_CONFIG["upload_dir"] = UPLOAD_DIR
@@ -783,7 +795,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="vnswap-web")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8000)
-    ap.add_argument("--shared", default=str(core.DEFAULT_SHARED_DIR))
+    ap.add_argument("--shared", default=None,
+                    help="folder .Shared (default: deteksi otomatis)")
     ap.add_argument("--token", default=None,
                     help="token auth API (default: auto saat host non-lokal)")
     ap.add_argument("--no-auth", action="store_true",
@@ -792,8 +805,11 @@ def main(argv: list[str] | None = None) -> int:
                     version=f"%(prog)s {core.VERSION}")
     args = ap.parse_args(argv)
     token, generated = resolve_token(args.host, args.token, args.no_auth)
-    srv = run_server(args.host, args.port, Path(args.shared),
+    srv = run_server(args.host, args.port,
+                     Path(args.shared) if args.shared else None,
                      default_media_dirs(), token=token)
+    resolved = SERVER_CONFIG["shared_dir"]
+    auto_note = " (deteksi otomatis)" if SERVER_CONFIG["shared_auto"] else ""
     url = f"http://{args.host}:{args.port}/"
     print(f"vnswap web v{core.VERSION}: {url}")
     if token:
@@ -802,7 +818,7 @@ def main(argv: list[str] | None = None) -> int:
             print("[!!] token dibuat otomatis karena host non-lokal.")
     elif not is_loopback(args.host):
         print("[!!] tanpa token di jaringan lokal — hanya untuk jaringan tepercaya.")
-    print(f"shared: {args.shared}")
+    print(f"shared: {resolved}{auto_note}")
     print("developed by hakiraadityaa (Ctrl+C untuk berhenti)")
     try:
         srv.serve_forever()

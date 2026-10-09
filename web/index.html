@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>voicenote swapper — web</title>
 <link rel="stylesheet" href="/styles.css">
 </head>
@@ -30,8 +31,11 @@
 
 <main class="wrap">
   <div class="shared-row">
-    <label>Shared
-      <input id="shared-input" type="text" spellcheck="false">
+    <label>Folder .Shared
+      <select id="shared-select" aria-label="Pilih folder .Shared"></select>
+    </label>
+    <label>Atau path manual
+      <input id="shared-input" type="text" spellcheck="false" placeholder="/path/ke/.Shared">
     </label>
     <button id="shared-apply" class="btn ghost">Terapkan</button>
     <span class="hint" id="shared-hint"></span>

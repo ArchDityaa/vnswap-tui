@@ -254,7 +254,8 @@ def run_pipeline(state: AppState) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="vnswap")
-    parser.add_argument("--shared", default=str(core.DEFAULT_SHARED_DIR))
+    parser.add_argument("--shared", default=None,
+                        help="folder .Shared (default: deteksi otomatis)")
     parser.add_argument("--dry-run", action="store_true",
                         help="preview saja, tidak ubah file")
     parser.add_argument("--apply", action="store_true",
@@ -275,7 +276,8 @@ def main(argv: list[str] | None = None) -> int:
                         version=f"%(prog)s {core.VERSION}")
     args = parser.parse_args(argv)
 
-    STATE.shared_dir = Path(args.shared)
+    STATE.shared_dir = (Path(args.shared) if args.shared
+                          else core.auto_shared_dir())
     STATE.media_dirs = default_media_dirs()
     STATE.channels = 2 if args.stereo else 1
     STATE.apply_mode = not args.dry_run
@@ -285,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
         token, generated = vnswap_web.resolve_token(
             args.host, args.token, args.no_auth)
         srv = vnswap_web.run_server(args.host, args.port,
-                                    Path(args.shared), default_media_dirs(),
+                                    STATE.shared_dir, default_media_dirs(),
                                     token=token)
         url = f"http://{args.host}:{args.port}/"
         print(f"vnswap web v{core.VERSION}: {url}")
@@ -295,7 +297,7 @@ def main(argv: list[str] | None = None) -> int:
                 print("[!!] token dibuat otomatis karena host non-lokal.")
         elif not vnswap_web.is_loopback(args.host):
             print("[!!] tanpa token di jaringan lokal — hanya untuk jaringan tepercaya.")
-        print(f"shared: {args.shared}")
+        print(f"shared: {STATE.shared_dir}")
         print("developed by hakiraadityaa (Ctrl+C untuk berhenti)")
         try:
             srv.serve_forever()

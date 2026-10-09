@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # Release version — single source of truth (mirrored in pyproject.toml).
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 
 # --------------------------------------------------------------------------
 # Constants — must match the web app exactly
@@ -43,6 +43,73 @@ DEFAULT_SHARED_DIR = Path(
     "/storage/emulated/999/Android/media/com.whatsapp/WhatsApp"
     "/accounts/1006/.Shared"
 )
+
+# Account/user numbers vary per device, so besides the exact default we
+# glob every sibling variant (not just `999` / `1006`).
+_SHARED_GLOB_PATTERNS = (
+    "storage/emulated/*/Android/media/com.whatsapp/WhatsApp/accounts/*/.Shared",
+    "sdcard/Android/media/com.whatsapp/WhatsApp/accounts/*/.Shared",
+)
+
+
+def find_shared_candidates() -> list[Path]:
+    """Existing `.Shared` dirs across known WhatsApp media roots.
+
+    Covers `$VNSWAP_SHARED`, the exact default, and every account/user
+    number variant. Symlink duplicates (e.g. `/sdcard`) are collapsed.
+    """
+    ordered: list[Path] = []
+
+    def add(p: Path) -> None:
+        try:
+            key = p.resolve()
+        except OSError:
+            return
+        if p.is_dir() and all(q.resolve() != key for q in ordered):
+            ordered.append(p)
+
+    env = os.environ.get("VNSWAP_SHARED", "").strip()
+    if env:
+        add(Path(env))
+    add(DEFAULT_SHARED_DIR)
+    for pattern in _SHARED_GLOB_PATTERNS:
+        try:
+            matches = sorted(Path("/").glob(pattern))
+        except OSError:
+            continue
+        for match in matches:
+            add(match)
+    return ordered
+
+
+def count_shared_targets(shared_dir: Path) -> int:
+    """Number of `*Visualization.data` files directly under a `.Shared` dir."""
+    if not shared_dir.is_dir():
+        return 0
+    try:
+        return sum(1 for p in shared_dir.iterdir()
+                   if p.is_file() and p.name.endswith("Visualization.data"))
+    except OSError:
+        return 0
+
+
+def rank_shared_candidates() -> list[tuple[Path, int]]:
+    """Candidates ordered by voice-note count, most first."""
+    ranked = [(p, count_shared_targets(p)) for p in find_shared_candidates()]
+    ranked.sort(key=lambda item: item[1], reverse=True)
+    return ranked
+
+
+def auto_shared_dir(explicit: Path | None = None) -> Path:
+    """Pick the best `.Shared` dir: the explicit one when it exists, else
+    the candidate with the most voice notes, else the default (or the
+    missing explicit path) so errors still show a concrete path."""
+    if explicit is not None and explicit.is_dir():
+        return explicit
+    ranked = rank_shared_candidates()
+    if ranked:
+        return ranked[0][0]
+    return explicit if explicit is not None else DEFAULT_SHARED_DIR
 
 _OPUS_TAGS_MAGIC = b"OpusTags"
 _MAX_VENDOR_LENGTH = 256  # lib/ffmpeg.ts: MAX_VENDOR_LENGTH
